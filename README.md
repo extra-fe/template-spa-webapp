@@ -33,3 +33,16 @@ aws s3 rm s3://sandbox-aws-dev-web-ngt8d --recursive
 nest g controller health
 nest g module health
 ```
+
+## API呼び出し
+```
+Invoke-WebRequest http://localhost:13000/ -Method GET
+```
+
+## Dockerコマンド
+```
+docker build -t hoge -f ./Dockerfile .    
+
+docker stop $(docker ps -q --filter "ancestor=hoge:latest")
+docker run -p 13000:3000 -e LOG_LEVEL=error hoge:latest
+```
