@@ -22,3 +22,9 @@ resource "auth0_client" "app" {
     alg = "RS256"
   }
 }
+
+resource "auth0_resource_server" "audience" {
+  name        = "${var.app-name}-${var.environment}-azure-audience"
+  identifier  = "https://${azurerm_cdn_frontdoor_endpoint.cdn.host_name}"
+  signing_alg = "RS256"
+}
