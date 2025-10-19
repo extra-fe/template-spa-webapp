@@ -77,7 +77,7 @@ resource "aws_cloudfront_distribution" "cdn" {
 
   viewer_certificate {
     cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 }
 
@@ -97,6 +97,12 @@ resource "aws_cloudfront_vpc_origin" "alb" {
       items    = ["TLSv1.2"]
       quantity = 1
     }
+    /*
+    origin_ssl_protocols {
+      items    = ["TLSv1.2"]
+      quantity = 1
+    }
+*/
   }
 }
 

@@ -35,7 +35,7 @@ variable "frontend-src-root" {
 }
 
 variable "target-branch" {
-  default     = "main"
+  default     = "f/phase2-1"
   description = "このブランチにPushされたときにCodePipelineをトリガー"
 }
 
