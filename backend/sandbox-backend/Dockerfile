@@ -14,7 +14,7 @@ RUN yarn install
 COPY . .
 
 # Prismaの生成
-#RUN npx prisma generate
+RUN npx prisma generate
 
 # ビルドステップ（TypeScriptのコンパイル）
 RUN yarn build
@@ -34,7 +34,7 @@ RUN yarn install --production
 
 # ビルドされたファイルとPrismaクライアントをコピー
 COPY --from=builder /usr/src/app/dist ./dist
-#COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
 
 # ファイルの所有者を非特権ユーザに変更
 RUN chown -R appuser:appgroup /usr/src/app
@@ -49,4 +49,4 @@ ENV NODE_ENV=production
 USER appuser
 
 # アプリケーションを起動
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
