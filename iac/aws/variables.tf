@@ -35,7 +35,7 @@ variable "frontend-src-root" {
 }
 
 variable "target-branch" {
-  default     = "main"
+  default     = "f/phase2-1"
   description = "このブランチにPushされたときにCodePipelineをトリガー"
 }
 
@@ -82,4 +82,10 @@ variable "api-expose-port" {
   type        = number
   default     = 3000
   description = "DockerfileでEXPOSEしているポートを指定"
+}
+
+variable "local-pc-ip-addresses" {
+  type        = list(string)
+  default     = []
+  description = "接続元のIPアドレス"
 }

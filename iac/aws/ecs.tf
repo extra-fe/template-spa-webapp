@@ -90,6 +90,20 @@ resource "aws_ecs_task_definition" "task_definition" {
             "name"  = "CORS_METHODS",
             "value" = "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
           },
+          {
+            "name"  = "AUTH_ENABLED",
+            "value" = "true"
+          },
+          {
+            "name"  = "PRISMA_LOG_LEVEL",
+            "value" = "query,info,warn,error"
+          }
+        ]
+        secrets = [
+          {
+            name      = "DATABASE_URL"
+            valueFrom = aws_ssm_parameter.db_connection_string.arn
+          }
         ]
         volumesFrom = []
       },
@@ -169,6 +183,22 @@ resource "aws_iam_role_policy" "execute_ecs_task" {
           Effect   = "Allow"
           Resource = aws_ecr_repository.backend.arn
         },
+        {
+          Effect = "Allow",
+          Action = [
+            "ssm:GetParameter",
+            "ssm:GetParameters"
+          ],
+          Resource = aws_ssm_parameter.db_connection_string.arn
+        },
+        {
+          Effect = "Allow",
+          Action = [
+            "kms:Decrypt"
+          ],
+          Resource = "arn:aws:kms:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:key/*"
+        },
+
       ]
       Version = "2012-10-17"
     }
