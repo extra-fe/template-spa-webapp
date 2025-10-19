@@ -83,3 +83,9 @@ variable "api-expose-port" {
   default     = 3000
   description = "DockerfileでEXPOSEしているポートを指定"
 }
+
+variable "local-pc-ip-addresses" {
+  type        = list(string)
+  default     = []
+  description = "接続元のIPアドレス"
+}
