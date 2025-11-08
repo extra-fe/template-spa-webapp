@@ -12,3 +12,36 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Race {
+  id        Int          @id @default(autoincrement()) // レースID
+  date      DateTime     // 日付
+  name      String       // レース名
+  venue     String       // 競馬場
+  entries   Entry[]      // 出走馬（1対多リレーション）
+
+  @@map("races")
+}
+
+model Entry {
+  id           Int      @id @default(autoincrement()) // 出走馬ID
+  raceId       Int                                      // レースID（外部キー）
+  frameNumber  Int                                      // 枠番
+  horseNumber  Int                                      // 馬番
+  horseName    String                                   // 馬名
+  sex          String                                   // 性（例: 牡）
+  age          String                                   // 齢（例: 3）
+  weight       Float?                                   // 斤量（kg）
+  jockey       String                                   // 騎手
+  trainer      String                                   // 調教師
+  bodyWeight   String?                                  // 馬体重（例: 460(+4)）
+  oddsRank     Int?                                     // 単勝人気（例: 1）
+  odds         Float?                                   // 単勝オッズ（例: 2.5）
+  rank         Int?                                     // 着順（例: 1）
+  time         String?                                  // タイム（例: 1:34.5）
+  margin       String?                                  // 着差（例: クビ）
+
+  race         Race     @relation(fields: [raceId], references: [id], onDelete: Cascade)
+
+  @@map("entries")
+}
