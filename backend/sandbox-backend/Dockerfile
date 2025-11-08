@@ -20,6 +20,9 @@ RUN --mount=type=cache,target=/root/.cache/yarn bash -ceu '\
 # アプリ本体
 COPY . .
 
+# Prisma generate用にダミーのDATABASE_URLを設定
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+
 # Prisma クライアント生成（エンジン同梱）
 RUN npx prisma generate
 
