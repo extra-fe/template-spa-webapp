@@ -28,9 +28,9 @@ resource "aws_instance" "bastion" {
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.bastion.name
   instance_type               = "t2.micro"
-  #key_name                    = "xxxx" //セッションマネージャで接続するので、キーペア不要
+  #key_name                    = "xxxxx" //セッションマネージャで接続するので、キーペア不要
   monitoring = false
-  subnet_id  = aws_subnet.private1c.id
+  subnet_id  = aws_subnet.private1a.id
   tags = {
     "Name" = "${var.environment}-bastion",
   }
@@ -43,6 +43,24 @@ resource "aws_instance" "bastion" {
     volume_size           = 30
     volume_type           = "gp2"
   }
+
+  # SSM Agentを確実に起動
+  user_data = <<-EOF
+              #!/bin/bash
+              # SSM Agentをインストール
+              sudo dnf install -y amazon-ssm-agent
+              sudo systemctl start amazon-ssm-agent
+              sudo systemctl enable amazon-ssm-agent
+              EOF
+
+  user_data_replace_on_change = true
+
+  # VPCエンドポイントが完全に作成されてから起動
+  depends_on = [
+    aws_vpc_endpoint.ssm,
+    aws_vpc_endpoint.ssmmessages,
+    aws_vpc_endpoint.ec2messages
+  ]
   timeouts {}
 }
 

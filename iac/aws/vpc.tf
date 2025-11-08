@@ -16,7 +16,7 @@ resource "aws_internet_gateway" "gw" {
 }
 
 resource "aws_subnet" "public1a" {
-  availability_zone = "${data.aws_region.current.name}a"
+  availability_zone = "${data.aws_region.current.region}a"
   cidr_block        = var.subnet_public1a_cidr_block
   tags = {
     "Name" = "${var.app-name}-${var.environment}-public-1a"
@@ -25,7 +25,7 @@ resource "aws_subnet" "public1a" {
 }
 
 resource "aws_subnet" "private1a" {
-  availability_zone = "${data.aws_region.current.name}a"
+  availability_zone = "${data.aws_region.current.region}a"
   cidr_block        = var.subnet_private1a_cidr_block
   tags = {
     "Name" = "${var.app-name}-${var.environment}-private-1a"
@@ -34,7 +34,7 @@ resource "aws_subnet" "private1a" {
 }
 
 resource "aws_subnet" "private1c" {
-  availability_zone = "${data.aws_region.current.name}c"
+  availability_zone = "${data.aws_region.current.region}c"
   cidr_block        = var.subnet_private1c_cidr_block
   tags = {
     "Name" = "${var.app-name}-${var.environment}-private-1c"

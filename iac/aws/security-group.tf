@@ -146,13 +146,13 @@ resource "aws_security_group" "ssm" {
 }
 
 resource "aws_security_group_rule" "ssm_in" {
-  security_group_id        = aws_security_group.ssm.id
-  type                     = "ingress"
-  protocol                 = "tcp"
-  from_port                = 443
-  to_port                  = 443
-  source_security_group_id = aws_security_group.bastion.id
-  description              = "ssm"
+  security_group_id = aws_security_group.ssm.id
+  type              = "ingress"
+  protocol          = "tcp"
+  from_port         = 443
+  to_port           = 443
+  cidr_blocks       = [var.vpc_cidr_block]
+  description       = "ssm"
 }
 
 resource "aws_security_group_rule" "ssm_out" {

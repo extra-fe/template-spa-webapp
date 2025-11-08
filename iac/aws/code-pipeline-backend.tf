@@ -2,7 +2,7 @@ locals {
   image-definition-file-name = "imagedefinitions.json"
   ecs_service_arn = format(
     "arn:aws:ecs:%s:%s:service/%s/%s",
-    data.aws_region.current.name,
+    data.aws_region.current.region,
     data.aws_caller_identity.self.account_id,
     aws_ecs_cluster.cluster.name,
     aws_ecs_service.service.name
@@ -211,8 +211,8 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*",
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*:log-stream:*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*:log-stream:*",
           ]
         },
         {
@@ -402,8 +402,8 @@ resource "aws_iam_role_policy" "backend-codebuild" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*",
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*:*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*:*",
           ]
         },
         {
@@ -430,7 +430,7 @@ resource "aws_iam_role_policy" "backend-codebuild" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:codebuild:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:report-group/*",
+            "arn:aws:codebuild:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:report-group/*",
           ]
         },
 

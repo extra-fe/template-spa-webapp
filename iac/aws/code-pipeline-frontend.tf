@@ -217,8 +217,8 @@ resource "aws_iam_policy" "codepipeline_frontend" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*",
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*:log-stream:*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codepipeline/*:log-stream:*",
           ]
         },
       ]
@@ -269,7 +269,7 @@ resource "aws_iam_policy" "codebuild_frontend" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*",
+            "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:log-group:/aws/codebuild/*",
           ]
         },
         {
@@ -280,7 +280,7 @@ resource "aws_iam_policy" "codebuild_frontend" {
           ]
           Effect = "Allow"
           Resource = [
-            "arn:aws:codebuild:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:report-group/*",
+            "arn:aws:codebuild:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:report-group/*",
           ]
         },
         {

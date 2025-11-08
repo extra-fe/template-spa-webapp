@@ -49,7 +49,7 @@ resource "aws_ecs_task_definition" "task_definition" {
           logDriver = "awslogs"
           options = {
             awslogs-group         = aws_cloudwatch_log_group.backend.name
-            awslogs-region        = data.aws_region.current.name
+            awslogs-region        = data.aws_region.current.region
             awslogs-stream-prefix = "ecs"
           }
         }
@@ -196,7 +196,7 @@ resource "aws_iam_role_policy" "execute_ecs_task" {
           Action = [
             "kms:Decrypt"
           ],
-          Resource = "arn:aws:kms:${data.aws_region.current.name}:${data.aws_caller_identity.self.account_id}:key/*"
+          Resource = "arn:aws:kms:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:key/*"
         },
       ]
       Version = "2012-10-17"
