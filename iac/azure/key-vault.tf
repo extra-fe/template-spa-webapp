@@ -204,3 +204,20 @@ resource "azurerm_key_vault_secret" "backend_app_service_name" {
     azurerm_key_vault_access_policy.terraform_user
   ]
 }
+
+resource "azurerm_key_vault_secret" "postgre_flexible_server_connection_string" {
+  name         = "DATABASE-URL"
+  value        = local.database_url
+  key_vault_id = azurerm_key_vault.vault.id
+  depends_on = [
+    azurerm_key_vault_access_policy.terraform_user
+  ]
+}
+
+resource "azurerm_key_vault_access_policy" "app_service_identity" {
+  key_vault_id = azurerm_key_vault.vault.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = azurerm_linux_web_app.app.identity[0].principal_id
+
+  secret_permissions = ["Get"]
+}
