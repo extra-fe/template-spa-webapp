@@ -1,5 +1,6 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { RaceService } from './race.service';
+import { CreateRaceDto } from './dto/create-race.dto';
 
 @Controller('api/races')
 export class RaceController {
@@ -13,5 +14,9 @@ export class RaceController {
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.raceService.findOne(id);
+  }
+  @Post()
+  create(@Body() createRaceDto: CreateRaceDto) {
+    return this.raceService.create(createRaceDto);
   }
 }
