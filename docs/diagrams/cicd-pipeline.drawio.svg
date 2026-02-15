@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1200" height="820" viewBox="-0.5 -0.5 1200 820" content="&lt;mxfile host=&quot;app.diagrams.net&quot;&gt;&lt;diagram name=&quot;CI/CD Pipeline&quot; id=&quot;cicd-pipe&quot;&gt;&lt;mxGraphModel dx=&quot;1200&quot; dy=&quot;820&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1200&quot; pageHeight=&quot;820&quot;&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333333"/>
+    </marker>
+    <marker id="arrowhead-aws" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FF9900"/>
+    </marker>
+    <marker id="arrowhead-azure" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0078D4"/>
+    </marker>
+  </defs>
+  <g>
+    <!-- Title -->
+    <text x="600" y="30" fill="#333333" font-family="Helvetica" font-size="20" text-anchor="middle" font-weight="bold">CI/CD Pipeline Architecture</text>
+
+    <!-- GitHub Repository (shared) -->
+    <rect x="480" y="55" width="240" height="70" rx="10" fill="#24292E" stroke="#24292E" stroke-width="2"/>
+    <text x="600" y="80" fill="#FFFFFF" font-family="Helvetica" font-size="14" text-anchor="middle" font-weight="bold">GitHub Repository</text>
+    <text x="600" y="98" fill="#CCCCCC" font-family="Helvetica" font-size="10" text-anchor="middle">template-spa-webapp</text>
+    <text x="600" y="114" fill="#CCCCCC" font-family="Helvetica" font-size="9" text-anchor="middle">frontend/ | backend/ | iac/</text>
+
+    <!-- AWS Section (Left) -->
+    <rect x="20" y="155" width="560" height="640" rx="12" fill="none" stroke="#FF9900" stroke-width="2.5"/>
+    <rect x="30" y="155" width="230" height="24" rx="4" fill="#FFF2CC" stroke="none"/>
+    <text x="40" y="172" fill="#FF9900" font-family="Helvetica" font-size="13" font-weight="bold">AWS (CodePipeline + CodeBuild)</text>
+
+    <!-- Trigger label AWS -->
+    <text x="300" y="172" fill="#CC7A00" font-family="Helvetica" font-size="9" text-anchor="middle">Trigger: push to main (auto)</text>
+
+    <!-- AWS Backend Pipeline -->
+    <rect x="40" y="195" width="530" height="265" rx="8" fill="#FFF8F0" stroke="#FF9900" stroke-width="1.5"/>
+    <text x="50" y="215" fill="#CC7A00" font-family="Helvetica" font-size="12" font-weight="bold">Backend Pipeline</text>
+    <text x="260" y="215" fill="#CC7A00" font-family="Helvetica" font-size="9">(path filter: backend/**)</text>
+
+    <!-- Source -->
+    <rect x="60" y="235" width="120" height="55" rx="6" fill="#FFF2CC" stroke="#FF9900" stroke-width="1.5"/>
+    <text x="120" y="258" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Source</text>
+    <text x="120" y="275" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">CodeStar</text>
+    <text x="120" y="285" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">Connection</text>
+
+    <!-- Build -->
+    <rect x="220" y="235" width="140" height="55" rx="6" fill="#FFF2CC" stroke="#FF9900" stroke-width="1.5"/>
+    <text x="290" y="253" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Build</text>
+    <text x="290" y="268" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">CodeBuild</text>
+    <text x="290" y="282" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">docker build &amp; push</text>
+
+    <!-- Deploy -->
+    <rect x="400" y="235" width="140" height="55" rx="6" fill="#FFF2CC" stroke="#FF9900" stroke-width="1.5"/>
+    <text x="470" y="253" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Deploy</text>
+    <text x="470" y="268" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">ECS Rolling</text>
+    <text x="470" y="282" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">imagedefinitions.json</text>
+
+    <!-- Arrows between stages -->
+    <line x1="180" y1="262" x2="220" y2="262" stroke="#FF9900" stroke-width="2" marker-end="url(#arrowhead-aws)"/>
+    <line x1="360" y1="262" x2="400" y2="262" stroke="#FF9900" stroke-width="2" marker-end="url(#arrowhead-aws)"/>
+
+    <!-- AWS Backend detail boxes -->
+    <rect x="60" y="310" width="130" height="40" rx="4" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="125" y="326" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">GitHub → ZIP</text>
+    <text x="125" y="340" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">S3 Artifact Store</text>
+
+    <rect x="220" y="310" width="150" height="55" rx="4" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="295" y="326" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">ECR Login</text>
+    <text x="295" y="340" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Docker Build (Dockerfile)</text>
+    <text x="295" y="354" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Push :latest + :SHA</text>
+
+    <rect x="400" y="310" width="150" height="55" rx="4" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="475" y="326" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Update Task Definition</text>
+    <text x="475" y="340" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">ECS Service Update</text>
+    <text x="475" y="354" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Rolling Deployment</text>
+
+    <!-- Target boxes for backend -->
+    <rect x="400" y="385" width="140" height="50" rx="6" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+    <text x="470" y="405" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">ECR</text>
+    <text x="470" y="420" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Container Registry</text>
+
+    <rect x="220" y="385" width="140" height="50" rx="6" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+    <text x="290" y="405" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">ECS Fargate</text>
+    <text x="290" y="420" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Running Service</text>
+
+    <line x1="290" y1="365" x2="430" y2="385" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="470" y1="365" x2="340" y2="385" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- AWS Frontend Pipeline -->
+    <rect x="40" y="475" width="530" height="250" rx="8" fill="#F0FFF0" stroke="#82B366" stroke-width="1.5"/>
+    <text x="50" y="495" fill="#5B8C3E" font-family="Helvetica" font-size="12" font-weight="bold">Frontend Pipeline</text>
+    <text x="260" y="495" fill="#5B8C3E" font-family="Helvetica" font-size="9">(path filter: frontend/**)</text>
+
+    <!-- Source -->
+    <rect x="60" y="515" width="120" height="55" rx="6" fill="#D5E8D4" stroke="#82B366" stroke-width="1.5"/>
+    <text x="120" y="538" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Source</text>
+    <text x="120" y="555" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">CodeStar</text>
+    <text x="120" y="565" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">Connection</text>
+
+    <!-- Build -->
+    <rect x="220" y="515" width="320" height="55" rx="6" fill="#D5E8D4" stroke="#82B366" stroke-width="1.5"/>
+    <text x="380" y="533" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Build (CodeBuild)</text>
+    <text x="380" y="550" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">yarn install → yarn build → S3 Upload → CloudFront Invalidation</text>
+    <text x="380" y="565" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">Env: VITE_AUTH0_*, VITE_API_BASE_URL from Terraform outputs</text>
+
+    <!-- Arrow -->
+    <line x1="180" y1="542" x2="220" y2="542" stroke="#82B366" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+    <!-- Target boxes -->
+    <rect x="220" y="590" width="140" height="50" rx="6" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+    <text x="290" y="610" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">S3 Bucket</text>
+    <text x="290" y="625" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">dist/ uploaded</text>
+
+    <rect x="400" y="590" width="140" height="50" rx="6" fill="#DAE8FC" stroke="#6C8EBF" stroke-width="1.5"/>
+    <text x="470" y="610" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">CloudFront</text>
+    <text x="470" y="625" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Cache Invalidated</text>
+
+    <line x1="290" y1="570" x2="290" y2="590" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="470" y1="570" x2="470" y2="590" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- GitHub to AWS arrow -->
+    <path d="M 530,125 L 300,125 L 300,195" fill="none" stroke="#FF9900" stroke-width="2"/>
+    <polygon points="297,191 300,197 303,191" fill="#FF9900"/>
+    <text x="380" y="143" fill="#FF9900" font-family="Helvetica" font-size="9">push to main</text>
+
+    <!-- Azure Section (Right) -->
+    <rect x="620" y="155" width="560" height="640" rx="12" fill="none" stroke="#0078D4" stroke-width="2.5"/>
+    <rect x="630" y="155" width="220" height="24" rx="4" fill="#E8F1FA" stroke="none"/>
+    <text x="640" y="172" fill="#0078D4" font-family="Helvetica" font-size="13" font-weight="bold">Azure (GitHub Actions)</text>
+
+    <!-- Trigger label Azure -->
+    <text x="920" y="172" fill="#0078D4" font-family="Helvetica" font-size="9" text-anchor="middle">Trigger: workflow_dispatch (manual)</text>
+
+    <!-- Azure Backend Pipeline -->
+    <rect x="640" y="195" width="530" height="265" rx="8" fill="#F0F8FF" stroke="#0078D4" stroke-width="1.5"/>
+    <text x="650" y="215" fill="#0078D4" font-family="Helvetica" font-size="12" font-weight="bold">Backend Workflow (deploy-backend.yaml)</text>
+
+    <!-- Steps -->
+    <rect x="650" y="235" width="90" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="695" y="255" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Azure</text>
+    <text x="695" y="268" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle">Login</text>
+    <text x="695" y="280" fill="#2E75B6" font-family="Helvetica" font-size="7" text-anchor="middle">(OIDC)</text>
+
+    <rect x="760" y="235" width="90" height="50" rx="6" fill="#E1D5E7" stroke="#9673A6" stroke-width="1.5"/>
+    <text x="805" y="255" fill="#5B3D73" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Key Vault</text>
+    <text x="805" y="268" fill="#9673A6" font-family="Helvetica" font-size="8" text-anchor="middle">Fetch</text>
+    <text x="805" y="280" fill="#9673A6" font-family="Helvetica" font-size="7" text-anchor="middle">Secrets</text>
+
+    <rect x="870" y="235" width="90" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="915" y="255" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Docker</text>
+    <text x="915" y="268" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle">Build</text>
+
+    <rect x="980" y="235" width="90" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="1025" y="255" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">ACR</text>
+    <text x="1025" y="268" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle">Push</text>
+    <text x="1025" y="280" fill="#2E75B6" font-family="Helvetica" font-size="7" text-anchor="middle">:SHA + :latest</text>
+
+    <rect x="1090" y="235" width="70" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="1125" y="255" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">App Svc</text>
+    <text x="1125" y="268" fill="#1A4472" font-family="Helvetica" font-size="9" text-anchor="middle">Update</text>
+    <text x="1125" y="280" fill="#2E75B6" font-family="Helvetica" font-size="7" text-anchor="middle">+ Restart</text>
+
+    <!-- Arrows -->
+    <line x1="740" y1="260" x2="760" y2="260" stroke="#0078D4" stroke-width="1.5" marker-end="url(#arrowhead-azure)"/>
+    <line x1="850" y1="260" x2="870" y2="260" stroke="#0078D4" stroke-width="1.5" marker-end="url(#arrowhead-azure)"/>
+    <line x1="960" y1="260" x2="980" y2="260" stroke="#0078D4" stroke-width="1.5" marker-end="url(#arrowhead-azure)"/>
+    <line x1="1070" y1="260" x2="1090" y2="260" stroke="#0078D4" stroke-width="1.5" marker-end="url(#arrowhead-azure)"/>
+
+    <!-- Azure Backend detail -->
+    <rect x="650" y="305" width="510" height="50" rx="4" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="905" y="322" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Key Vault secrets: ACR-NAME, IMAGE-NAME, BACKEND-WORKING-DIRECTORY,</text>
+    <text x="905" y="336" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">BACKEND-APP-SERVICE-NAME, RESOURCE-GROUP-NAME</text>
+
+    <!-- Target boxes -->
+    <rect x="870" y="375" width="130" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="935" y="395" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">ACR</text>
+    <text x="935" y="412" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">Container Registry</text>
+
+    <rect x="1030" y="375" width="130" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="1095" y="395" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">App Service</text>
+    <text x="1095" y="412" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">Linux B1</text>
+
+    <line x1="935" y1="355" x2="935" y2="375" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="1095" y1="355" x2="1095" y2="375" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- Azure Frontend Pipeline -->
+    <rect x="640" y="475" width="530" height="250" rx="8" fill="#F0FFF8" stroke="#00A36C" stroke-width="1.5"/>
+    <text x="650" y="495" fill="#00563F" font-family="Helvetica" font-size="12" font-weight="bold">Frontend Workflow (deploy-frontend.yaml)</text>
+
+    <!-- Steps -->
+    <rect x="650" y="515" width="75" height="50" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
+    <text x="688" y="535" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Azure</text>
+    <text x="688" y="548" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle">Login</text>
+    <text x="688" y="560" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">(OIDC)</text>
+
+    <rect x="740" y="515" width="80" height="50" rx="6" fill="#E1D5E7" stroke="#9673A6" stroke-width="1.5"/>
+    <text x="780" y="535" fill="#5B3D73" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Key Vault</text>
+    <text x="780" y="548" fill="#9673A6" font-family="Helvetica" font-size="8" text-anchor="middle">Fetch</text>
+    <text x="780" y="560" fill="#9673A6" font-family="Helvetica" font-size="7" text-anchor="middle">Auth0 + Config</text>
+
+    <rect x="840" y="515" width="90" height="50" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
+    <text x="885" y="535" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Yarn</text>
+    <text x="885" y="548" fill="#00A36C" font-family="Helvetica" font-size="9" text-anchor="middle">Build</text>
+    <text x="885" y="560" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">Node 23.1</text>
+
+    <rect x="950" y="515" width="90" height="50" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
+    <text x="995" y="535" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Blob</text>
+    <text x="995" y="548" fill="#00A36C" font-family="Helvetica" font-size="9" text-anchor="middle">Upload</text>
+    <text x="995" y="560" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">$web container</text>
+
+    <rect x="1060" y="515" width="100" height="50" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
+    <text x="1110" y="535" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Front Door</text>
+    <text x="1110" y="548" fill="#00A36C" font-family="Helvetica" font-size="9" text-anchor="middle">Cache Purge</text>
+    <text x="1110" y="560" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">(async)</text>
+
+    <!-- Arrows -->
+    <line x1="725" y1="540" x2="740" y2="540" stroke="#00A36C" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="820" y1="540" x2="840" y2="540" stroke="#00A36C" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="930" y1="540" x2="950" y2="540" stroke="#00A36C" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+    <line x1="1040" y1="540" x2="1060" y2="540" stroke="#00A36C" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+    <!-- Azure Frontend detail -->
+    <rect x="650" y="585" width="510" height="40" rx="4" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="905" y="602" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Key Vault secrets: AUTH0-CLIENT-ID, AUTH0-DOMAIN, AUTH0-AUDIENCE, API-BASE-URL,</text>
+    <text x="905" y="616" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">FRONTEND-STORAGE-ACCOUNT-NAME, FRONTDOOR-PROFILE-NAME, RESOURCE-GROUP-NAME</text>
+
+    <!-- Target boxes -->
+    <rect x="870" y="645" width="130" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="935" y="665" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Storage Account</text>
+    <text x="935" y="682" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">$web (dist/)</text>
+
+    <rect x="1030" y="645" width="130" height="50" rx="6" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
+    <text x="1095" y="665" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Front Door</text>
+    <text x="1095" y="682" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">CDN Cache</text>
+
+    <line x1="935" y1="625" x2="935" y2="645" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="1095" y1="625" x2="1095" y2="645" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+
+    <!-- GitHub to Azure arrow -->
+    <path d="M 670,125 L 900,125 L 900,195" fill="none" stroke="#0078D4" stroke-width="2"/>
+    <polygon points="897,191 900,197 903,191" fill="#0078D4"/>
+    <text x="810" y="143" fill="#0078D4" font-family="Helvetica" font-size="9">workflow_dispatch</text>
+
+    <!-- OIDC Auth box for Azure -->
+    <rect x="640" y="740" width="520" height="45" rx="6" fill="#E8F1FA" stroke="#0078D4" stroke-width="1"/>
+    <text x="900" y="758" fill="#0078D4" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Authentication: OIDC Federated Credentials (Service Principal)</text>
+    <text x="900" y="773" fill="#0078D4" font-family="Helvetica" font-size="9" text-anchor="middle">No static secrets stored in GitHub. Key Vault used for all runtime config.</text>
+
+    <!-- AWS Auth box -->
+    <rect x="40" y="740" width="530" height="45" rx="6" fill="#FFF8F0" stroke="#FF9900" stroke-width="1"/>
+    <text x="305" y="758" fill="#CC7A00" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Authentication: CodeStar Connection to GitHub</text>
+    <text x="305" y="773" fill="#CC7A00" font-family="Helvetica" font-size="9" text-anchor="middle">IAM Roles for CodePipeline/CodeBuild. Artifacts stored in S3.</text>
+
+    <!-- Comparison Table at bottom -->
+    <rect x="40" y="800" width="1120" height="15" rx="0" fill="none" stroke="none"/>
+    <text x="170" y="812" fill="#FF9900" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Auto trigger on push</text>
+    <text x="600" y="812" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">|</text>
+    <text x="900" y="812" fill="#0078D4" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Manual trigger (workflow_dispatch)</text>
+  </g>
+</svg>
