@@ -67,4 +67,6 @@ jobs:
           --resource-group ${{ env.RESOURCE-GROUP-NAME }} \
           --profile-name ${{ env.FRONTDOOR-PROFILE-NAME }}  \
           --endpoint-name ${{ env.FRONTDOOR-ENDPOINRT-NAME }} \
-          --content-paths '/*'
+          --content-paths '/*' \
+          --no-wait
+          echo "✅ Cache purge initiated (async)"
