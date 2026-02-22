@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1200" height="950" viewBox="-0.5 -0.5 1200 950" content="&lt;mxfile host=&quot;app.diagrams.net&quot;&gt;&lt;diagram name=&quot;Azure Architecture&quot; id=&quot;azure-arch&quot;&gt;&lt;mxGraphModel dx=&quot;1200&quot; dy=&quot;950&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1200&quot; pageHeight=&quot;950&quot;&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1200" height="950" viewBox="-0.5 -0.5 1200 950" content="&lt;mxfile host=&quot;app.diagrams.net&quot;&gt;&lt;diagram name=&quot;Azure Architecture&quot; id=&quot;azure-arch&quot;&gt;&lt;mxGraphModel dx=&quot;1200&quot; dy=&quot;950&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1200&quot; pageHeight=&quot;950&quot;&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;&lt;mxCell id=&quot;title&quot; value=&quot;Azure Infrastructure Architecture&quot; style=&quot;text;html=1;fontSize=20;fontStyle=1;fillColor=none;align=center;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;350&quot; y=&quot;10&quot; width=&quot;500&quot; height=&quot;30&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;user&quot; value=&quot;User&quot; style=&quot;shape=mxgraph.aws4.client;whiteSpace=wrap;html=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;555&quot; y=&quot;50&quot; width=&quot;50&quot; height=&quot;50&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;auth0&quot; value=&quot;Auth0&amp;#xa;JWT / OAuth2 / JWKS&quot; style=&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;fontSize=10;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;930&quot; y=&quot;50&quot; width=&quot;140&quot; height=&quot;50&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;fd&quot; value=&quot;Front Door Standard&amp;#xa;CDN / HTTPS / Health Probes&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=10;image=img/lib/azure2/networking/Front_Doors.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;556&quot; y=&quot;135&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;sa&quot; value=&quot;Storage Account&amp;#xa;$web (Static Web)&amp;#xa;React SPA&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=10;image=img/lib/azure2/storage/Storage_Accounts.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;146&quot; y=&quot;240&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;rg&quot; value=&quot;Resource Group&quot; style=&quot;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;fillColor=none;strokeColor=#0078D4;strokeWidth=2;dashed=1;dashPattern=8 4;verticalAlign=top;fontColor=#0078D4;fontStyle=1;fontSize=12;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;340&quot; y=&quot;220&quot; width=&quot;830&quot; height=&quot;620&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;vnet&quot; value=&quot;VNet 10.0.0.0/24&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=left;fontSize=11;image=img/lib/azure2/networking/Virtual_Networks.svg;container=1;collapsible=0;recursiveResize=0;fillColor=none;strokeColor=#00A36C;strokeWidth=2;dashed=1;dashPattern=6 3;verticalAlign=top;fontColor=#00A36C;fontStyle=1;spacingLeft=30;&quot; vertex=&quot;1&quot; parent=&quot;rg&quot;&gt;&lt;mxGeometry x=&quot;30&quot; y=&quot;40&quot; width=&quot;540&quot; height=&quot;480&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;appsvc&quot; value=&quot;App Service (Linux B1)&amp;#xa;Docker Container&amp;#xa;NestJS API (:3000)&amp;#xa;Managed Identity&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/app_services/App_Services.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;526&quot; y=&quot;360&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;pgsql&quot; value=&quot;PostgreSQL Flexible Server&amp;#xa;v16 / B_Standard_B1ms / 32GB&amp;#xa;Public Access: OFF / Backup: 7d&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;526&quot; y=&quot;550&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;acr&quot; value=&quot;Container Registry&amp;#xa;(ACR)&amp;#xa;AcrPull: Managed Identity&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/containers/Container_Registries.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;310&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;kv&quot; value=&quot;Key Vault&amp;#xa;Auth0 / DB / Deploy Config&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/security/Key_Vaults.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;410&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;la&quot; value=&quot;Log Analytics Workspace&amp;#xa;Console/App/HTTP Logs&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/analytics/Log_Analytics_Workspaces.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;510&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;dns&quot; value=&quot;Private DNS Zone&amp;#xa;.postgres.database.azure.com&quot; style=&quot;image;aspect=fixed;html=1;points=[];align=center;fontSize=9;image=img/lib/azure2/networking/DNS_Zones.svg;verticalLabelPosition=bottom;verticalAlign=top;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;730&quot; y=&quot;555&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e1&quot; value=&quot;HTTPS&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;user&quot; target=&quot;fd&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e2&quot; value=&quot;/* (Web Origin)&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;fd&quot; target=&quot;sa&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e3&quot; value=&quot;/api/* (ServiceTag)&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;fd&quot; target=&quot;appsvc&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e4&quot; value=&quot;:5432 (SSL)&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;appsvc&quot; target=&quot;pgsql&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e5&quot; value=&quot;image pull&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;acr&quot; target=&quot;appsvc&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e6&quot; value=&quot;secrets ref&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;kv&quot; target=&quot;appsvc&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e7&quot; value=&quot;diagnostics&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;appsvc&quot; target=&quot;la&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;e8&quot; value=&quot;OAuth2 / JWT (RS256)&quot; style=&quot;edgeStyle=orthogonalEdgeStyle;rounded=1;dashed=1;fontSize=9;&quot; edge=&quot;1&quot; source=&quot;user&quot; target=&quot;auth0&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry relative=&quot;1&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
   <defs/>
   <g>
     <!-- Title -->
@@ -26,79 +26,105 @@
     <polygon points="916,62 922,65 916,68" fill="#999999"/>
     <text x="760" y="58" fill="#999999" font-family="Helvetica" font-size="9" text-anchor="middle">OAuth2 / JWT (RS256)</text>
 
-    <!-- Front Door -->
-    <rect x="430" y="135" width="300" height="55" rx="10" fill="#BDD7EE" stroke="#2E75B6" stroke-width="2"/>
-    <text x="580" y="157" fill="#1A4472" font-family="Helvetica" font-size="14" text-anchor="middle" font-weight="bold">Azure Front Door Standard</text>
-    <text x="580" y="177" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">CDN / HTTPS / Health Probes</text>
+    <!-- Front Door icon -->
+    <g transform="translate(556,135)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#0078D4" stroke="none"/>
+      <text x="24" y="18" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Front</text>
+      <text x="24" y="28" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Door</text>
+      <text x="24" y="40" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Standard</text>
+    </g>
+    <text x="580" y="198" fill="#1A4472" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Front Door Standard</text>
+    <text x="580" y="212" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">CDN / HTTPS / Health Probes</text>
 
     <!-- User to Front Door arrow -->
     <line x1="580" y1="115" x2="580" y2="135" stroke="#333333" stroke-width="2"/>
     <polygon points="576,132 580,138 584,132" fill="#333333"/>
     <text x="595" y="128" fill="#333333" font-family="Helvetica" font-size="9">HTTPS</text>
 
-    <!-- Storage Account -->
-    <rect x="70" y="230" width="200" height="60" rx="10" fill="#BDD7EE" stroke="#2E75B6" stroke-width="2"/>
-    <text x="170" y="252" fill="#1A4472" font-family="Helvetica" font-size="12" text-anchor="middle" font-weight="bold">Storage Account</text>
-    <text x="170" y="268" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">$web Container (Static Web)</text>
-    <text x="170" y="282" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">React SPA / Error Doc: index.html</text>
+    <!-- Storage Account icon -->
+    <g transform="translate(146,235)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#0078D4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Storage</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Account</text>
+      <text x="24" y="40" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">$web</text>
+    </g>
+    <text x="170" y="298" fill="#1A4472" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Storage Account</text>
+    <text x="170" y="312" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">$web Container (Static Web)</text>
+    <text x="170" y="326" fill="#2E75B6" font-family="Helvetica" font-size="8" text-anchor="middle">React SPA / Error Doc: index.html</text>
 
     <!-- Front Door to Storage arrow -->
-    <path d="M 430,165 L 320,165 L 320,258 L 270,258" fill="none" stroke="#333333" stroke-width="1.5"/>
-    <polygon points="274,255 268,258 274,261" fill="#333333"/>
-    <text x="340" y="158" fill="#333333" font-family="Helvetica" font-size="9">/* (Web Origin)</text>
+    <path d="M 556,159 L 320,159 L 320,259 L 194,259" fill="none" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="198,256 192,259 198,262" fill="#333333"/>
+    <text x="340" y="152" fill="#333333" font-family="Helvetica" font-size="9">/* (Web Origin)</text>
 
     <!-- Resource Group Box -->
     <rect x="340" y="220" width="830" height="620" rx="12" fill="none" stroke="#0078D4" stroke-width="2.5" stroke-dasharray="8,4"/>
     <rect x="350" y="220" width="200" height="22" rx="4" fill="#E8F1FA" stroke="none"/>
-    <text x="360" y="236" fill="#0078D4" font-family="Helvetica" font-size="12" font-weight="bold">Resource Group</text>
+    <g transform="translate(352,222)">
+      <rect x="0" y="0" width="18" height="18" rx="2" fill="#0078D4" stroke="none"/>
+      <text x="9" y="13" fill="#FFFFFF" font-family="Helvetica" font-size="8" text-anchor="middle" font-weight="bold">RG</text>
+    </g>
+    <text x="378" y="236" fill="#0078D4" font-family="Helvetica" font-size="12" font-weight="bold">Resource Group</text>
 
     <!-- VNet Box -->
     <rect x="370" y="260" width="540" height="480" rx="10" fill="none" stroke="#00A36C" stroke-width="2" stroke-dasharray="6,3"/>
     <rect x="380" y="260" width="180" height="20" rx="4" fill="#E6F4EA" stroke="none"/>
-    <text x="390" y="275" fill="#00A36C" font-family="Helvetica" font-size="11" font-weight="bold">VNet 10.0.0.0/24</text>
+    <g transform="translate(382,262)">
+      <rect x="0" y="0" width="16" height="16" rx="2" fill="#00A36C" stroke="none"/>
+      <text x="8" y="12" fill="#FFFFFF" font-family="Helvetica" font-size="7" text-anchor="middle" font-weight="bold">VN</text>
+    </g>
+    <text x="406" y="275" fill="#00A36C" font-family="Helvetica" font-size="11" font-weight="bold">VNet 10.0.0.0/24</text>
 
     <!-- App Service Subnet -->
     <rect x="390" y="300" width="500" height="170" rx="8" fill="#F0F8FF" stroke="#5B9BD5" stroke-width="1.5"/>
     <text x="400" y="318" fill="#2E75B6" font-family="Helvetica" font-size="10" font-weight="bold">App Service Subnet 10.0.0.0/29</text>
     <text x="400" y="332" fill="#5B9BD5" font-family="Helvetica" font-size="9">(Delegation: Microsoft.Web/serverFarms)</text>
 
-    <!-- App Service -->
-    <rect x="420" y="350" width="260" height="100" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="2"/>
-    <text x="550" y="372" fill="#1A4472" font-family="Helvetica" font-size="13" text-anchor="middle" font-weight="bold">App Service (Linux B1)</text>
-    <text x="550" y="390" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">Docker Container: backend:latest</text>
-    <text x="550" y="406" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">NestJS API (:3000)</text>
-    <text x="550" y="422" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">System Assigned Managed Identity</text>
-    <text x="550" y="438" fill="#2E75B6" font-family="Helvetica" font-size="10" text-anchor="middle">IP: Allow FrontDoor.Backend only</text>
+    <!-- App Service icon -->
+    <g transform="translate(526,360)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#0078D4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">App</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Service</text>
+      <text x="24" y="38" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Linux B1</text>
+    </g>
+    <text x="550" y="423" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">App Service (Linux B1)</text>
+    <text x="550" y="437" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">Docker Container: backend:latest</text>
+    <text x="550" y="451" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">NestJS API (:3000) / Managed Identity</text>
 
     <!-- Front Door to App Service arrow -->
-    <path d="M 640,190 L 750,190 L 750,340 L 550,340 L 550,350" fill="none" stroke="#333333" stroke-width="1.5"/>
-    <polygon points="547,346 550,352 553,346" fill="#333333"/>
-    <text x="765" y="280" fill="#333333" font-family="Helvetica" font-size="9" transform="rotate(90,765,280)">/api/* (ServiceTag)</text>
+    <path d="M 604,159 L 750,159 L 750,340 L 550,340 L 550,360" fill="none" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="547,356 550,362 553,356" fill="#333333"/>
+    <text x="765" y="260" fill="#333333" font-family="Helvetica" font-size="9" transform="rotate(90,765,260)">/api/* (ServiceTag)</text>
 
     <!-- DB Subnet -->
     <rect x="390" y="500" width="500" height="170" rx="8" fill="#FFF8F0" stroke="#ED7D31" stroke-width="1.5"/>
     <text x="400" y="518" fill="#C05A15" font-family="Helvetica" font-size="10" font-weight="bold">DB Subnet 10.0.0.8/29</text>
     <text x="400" y="532" fill="#ED7D31" font-family="Helvetica" font-size="9">(Delegation: Microsoft.DBforPostgreSQL/flexibleServers)</text>
 
-    <!-- PostgreSQL -->
-    <ellipse cx="550" cy="560" rx="100" ry="14" fill="#FFF2CC" stroke="#D6B656" stroke-width="2"/>
-    <rect x="450" y="560" width="200" height="65" fill="#FFF2CC" stroke="#D6B656" stroke-width="2"/>
-    <ellipse cx="550" cy="625" rx="100" ry="14" fill="#FFF2CC" stroke="#D6B656" stroke-width="2"/>
-    <line x1="450" y1="560" x2="450" y2="625" stroke="#D6B656" stroke-width="2"/>
-    <line x1="650" y1="560" x2="650" y2="625" stroke="#D6B656" stroke-width="2"/>
-    <text x="550" y="583" fill="#333333" font-family="Helvetica" font-size="12" text-anchor="middle" font-weight="bold">PostgreSQL Flexible Server</text>
-    <text x="550" y="599" fill="#555555" font-family="Helvetica" font-size="10" text-anchor="middle">v16 / B_Standard_B1ms / 32GB</text>
-    <text x="550" y="615" fill="#555555" font-family="Helvetica" font-size="10" text-anchor="middle">Public Access: OFF / Backup: 7d</text>
+    <!-- PostgreSQL icon -->
+    <g transform="translate(526,555)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#0078D4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">PostgreSQL</text>
+      <text x="24" y="28" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Flexible</text>
+      <text x="24" y="40" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Server</text>
+    </g>
+    <text x="550" y="618" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">PostgreSQL Flexible Server</text>
+    <text x="550" y="632" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">v16 / B_Standard_B1ms / 32GB</text>
+    <text x="550" y="646" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Public Access: OFF / Backup: 7d</text>
 
-    <!-- Private DNS Zone -->
-    <rect x="700" y="550" width="170" height="45" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
-    <text x="785" y="568" fill="#00A36C" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Private DNS Zone</text>
-    <text x="785" y="584" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">private.postgres.database.azure.com</text>
+    <!-- Private DNS Zone icon -->
+    <g transform="translate(730,555)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#2E75B6" stroke="none"/>
+      <text x="22" y="18" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">DNS</text>
+      <text x="22" y="30" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Private</text>
+    </g>
+    <text x="752" y="612" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Private DNS Zone</text>
+    <text x="752" y="625" fill="#2E75B6" font-family="Helvetica" font-size="7" text-anchor="middle">.postgres.database.azure.com</text>
 
     <!-- App Service to PostgreSQL arrow -->
-    <line x1="550" y1="450" x2="550" y2="546" stroke="#333333" stroke-width="1.5"/>
-    <polygon points="547,542 550,548 553,542" fill="#333333"/>
-    <text x="565" y="500" fill="#333333" font-family="Helvetica" font-size="9">:5432 (SSL)</text>
+    <line x1="550" y1="455" x2="550" y2="555" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="547,551 550,557 553,551" fill="#333333"/>
+    <text x="565" y="505" fill="#333333" font-family="Helvetica" font-size="9">:5432 (SSL)</text>
 
     <!-- Default Subnet -->
     <rect x="390" y="695" width="500" height="35" rx="6" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
@@ -106,112 +132,141 @@
 
     <!-- Right side services -->
 
-    <!-- ACR -->
-    <rect x="960" y="310" width="170" height="55" rx="8" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1.5"/>
-    <text x="1045" y="332" fill="#1A4472" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Container Registry</text>
-    <text x="1045" y="350" fill="#2E75B6" font-family="Helvetica" font-size="9" text-anchor="middle">(ACR) Managed Identity: AcrPull</text>
+    <!-- ACR icon -->
+    <g transform="translate(990,310)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#0078D4" stroke="none"/>
+      <text x="24" y="20" fill="#FFFFFF" font-family="Helvetica" font-size="8" text-anchor="middle" font-weight="bold">ACR</text>
+      <text x="24" y="34" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle">Registry</text>
+    </g>
+    <text x="1014" y="373" fill="#1A4472" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Container Registry</text>
+    <text x="1014" y="387" fill="#2E75B6" font-family="Helvetica" font-size="8" text-anchor="middle">(ACR) AcrPull: Managed Identity</text>
 
     <!-- ACR to App Service -->
-    <path d="M 960,340 L 905,340 L 905,380 L 680,380" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="684,377 678,380 684,383" fill="#999999"/>
+    <path d="M 990,340 L 900,340 L 900,384 L 574,384" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="578,381 572,384 578,387" fill="#999999"/>
     <text x="850" y="335" fill="#999999" font-family="Helvetica" font-size="9">image pull</text>
 
-    <!-- Key Vault -->
-    <rect x="960" y="395" width="170" height="80" rx="8" fill="#E1D5E7" stroke="#9673A6" stroke-width="1.5"/>
-    <text x="1045" y="415" fill="#5B3D73" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Key Vault</text>
-    <text x="1045" y="432" fill="#9673A6" font-family="Helvetica" font-size="9" text-anchor="middle">Auth0 Credentials</text>
-    <text x="1045" y="446" fill="#9673A6" font-family="Helvetica" font-size="9" text-anchor="middle">DB Connection String</text>
-    <text x="1045" y="460" fill="#9673A6" font-family="Helvetica" font-size="9" text-anchor="middle">Deploy Config / OIDC</text>
+    <!-- Key Vault icon -->
+    <g transform="translate(990,415)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#00A36C" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Key</text>
+      <text x="24" y="28" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Vault</text>
+      <rect x="14" y="32" width="20" height="8" rx="2" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="1014" y="478" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Key Vault</text>
+    <text x="1014" y="492" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Auth0 Credentials</text>
+    <text x="1014" y="504" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">DB Connection / Deploy Config</text>
 
     <!-- Key Vault to App Service -->
-    <path d="M 960,440 L 900,440 L 900,400 L 680,400" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="684,397 678,400 684,403" fill="#999999"/>
+    <path d="M 990,440 L 900,440 L 900,400 L 574,400" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="578,397 572,400 578,403" fill="#999999"/>
     <text x="820" y="435" fill="#999999" font-family="Helvetica" font-size="9">secrets ref</text>
 
-    <!-- Log Analytics -->
-    <rect x="960" y="505" width="170" height="60" rx="8" fill="#F5F5F5" stroke="#999999" stroke-width="1.5"/>
-    <text x="1045" y="525" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Log Analytics</text>
-    <text x="1045" y="540" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">Workspace</text>
-    <text x="1045" y="555" fill="#666666" font-family="Helvetica" font-size="8" text-anchor="middle">Console/App/HTTP Logs + Metrics</text>
+    <!-- Log Analytics icon -->
+    <g transform="translate(990,520)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#5B9BD5" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Log</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Analytics</text>
+      <rect x="8" y="30" width="32" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.4" stroke="none"/>
+      <rect x="8" y="36" width="24" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="1014" y="583" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Log Analytics</text>
+    <text x="1014" y="597" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Workspace</text>
+    <text x="1014" y="610" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">Console/App/HTTP Logs + Metrics</text>
 
     <!-- App Service to Log Analytics -->
-    <path d="M 680,420 L 920,420 L 920,530 L 960,530" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="956,527 962,530 956,533" fill="#999999"/>
+    <path d="M 574,395 L 920,395 L 920,544 L 990,544" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="986,541 992,544 986,547" fill="#999999"/>
     <text x="930" y="478" fill="#999999" font-family="Helvetica" font-size="9" transform="rotate(90,930,478)">diagnostics</text>
 
     <!-- CI/CD Section -->
     <rect x="15" y="340" width="170" height="330" rx="8" fill="none" stroke="#00A36C" stroke-width="1.5" stroke-dasharray="5,3"/>
     <text x="100" y="358" fill="#00A36C" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">CI/CD (GitHub Actions)</text>
 
-    <!-- GitHub Actions Backend -->
-    <rect x="30" y="375" width="140" height="65" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
-    <text x="100" y="393" fill="#00563F" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">deploy-backend</text>
-    <text x="100" y="408" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">Docker Build → ACR Push</text>
-    <text x="100" y="420" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">→ App Service Update</text>
-    <text x="100" y="432" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">(workflow_dispatch)</text>
+    <!-- GitHub Actions Backend icon -->
+    <g transform="translate(58,380)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#2DA44E" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">GH</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Actions</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">(Backend)</text>
+    </g>
+    <text x="80" y="438" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">deploy-backend</text>
+    <text x="80" y="450" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">Docker Build &#x2192; ACR Push</text>
+    <text x="80" y="460" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">&#x2192; App Service Update</text>
 
-    <!-- GitHub Actions Frontend -->
-    <rect x="30" y="460" width="140" height="65" rx="6" fill="#E6F4EA" stroke="#00A36C" stroke-width="1.5"/>
-    <text x="100" y="478" fill="#00563F" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">deploy-frontend</text>
-    <text x="100" y="493" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">yarn build → Blob Upload</text>
-    <text x="100" y="505" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">→ Front Door Cache Purge</text>
-    <text x="100" y="517" fill="#00A36C" font-family="Helvetica" font-size="8" text-anchor="middle">(workflow_dispatch)</text>
+    <!-- GitHub Actions Frontend icon -->
+    <g transform="translate(58,475)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#2DA44E" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">GH</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Actions</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">(Frontend)</text>
+    </g>
+    <text x="80" y="533" fill="#00563F" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">deploy-frontend</text>
+    <text x="80" y="545" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">yarn build &#x2192; Blob Upload</text>
+    <text x="80" y="555" fill="#00A36C" font-family="Helvetica" font-size="7" text-anchor="middle">&#x2192; Front Door Cache Purge</text>
 
     <!-- Service Principal -->
-    <rect x="30" y="550" width="140" height="55" rx="6" fill="#F5F5F5" stroke="#333333" stroke-width="1.5"/>
-    <text x="100" y="570" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Service Principal</text>
-    <text x="100" y="585" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">OIDC (Federated)</text>
-    <text x="100" y="598" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">No Static Secrets</text>
+    <g transform="translate(58,570)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#0078D4" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Service</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Principal</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">OIDC</text>
+    </g>
+    <text x="80" y="628" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Service Principal</text>
+    <text x="80" y="640" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">OIDC (Federated)</text>
+    <text x="80" y="650" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">No Static Secrets</text>
 
     <!-- GitHub -->
-    <rect x="30" y="625" width="140" height="40" rx="6" fill="#24292E" stroke="#24292E" stroke-width="1.5"/>
-    <text x="100" y="650" fill="#FFFFFF" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">GitHub Repository</text>
+    <rect x="30" y="655" width="140" height="40" rx="6" fill="#24292E" stroke="#24292E" stroke-width="1.5"/>
+    <text x="100" y="680" fill="#FFFFFF" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">GitHub Repository</text>
 
     <!-- Connections in CI/CD -->
-    <line x1="100" y1="625" x2="100" y2="605" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
-    <polygon points="97,609 100,603 103,609" fill="#999999"/>
+    <line x1="100" y1="655" x2="100" y2="620" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="97,623 100,617 103,623" fill="#999999"/>
 
-    <line x1="100" y1="550" x2="100" y2="525" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
-    <polygon points="97,529 100,523 103,529" fill="#999999"/>
-    <text x="115" y="540" fill="#999999" font-family="Helvetica" font-size="8">OIDC</text>
+    <line x1="80" y1="570" x2="80" y2="525" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="77,528 80,522 83,528" fill="#999999"/>
+    <text x="95" y="548" fill="#999999" font-family="Helvetica" font-size="8">OIDC</text>
 
-    <line x1="100" y1="460" x2="100" y2="440" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
-    <polygon points="97,444 100,438 103,444" fill="#999999"/>
+    <line x1="80" y1="475" x2="80" y2="430" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="77,433 80,427 83,433" fill="#999999"/>
 
     <!-- Pipeline to Storage Account -->
-    <path d="M 170,493 L 220,493 L 220,260 L 270,260" fill="none" stroke="#00A36C" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="266,257 272,260 266,263" fill="#00A36C"/>
+    <path d="M 170,497 L 220,497 L 220,259 L 194,259" fill="none" stroke="#00A36C" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="198,256 192,259 198,262" fill="#00A36C"/>
     <text x="230" y="380" fill="#00A36C" font-family="Helvetica" font-size="8" transform="rotate(-90,230,380)">upload $web</text>
 
     <!-- Pipeline to ACR -->
-    <path d="M 170,405 L 260,405 L 260,338 L 960,338" fill="none" stroke="#00A36C" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="956,335 962,338 956,341" fill="#00A36C"/>
-    <text x="610" y="332" fill="#00A36C" font-family="Helvetica" font-size="8">docker push</text>
+    <path d="M 170,402 L 260,402 L 260,334 L 990,334" fill="none" stroke="#00A36C" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="986,331 992,334 986,337" fill="#00A36C"/>
+    <text x="610" y="328" fill="#00A36C" font-family="Helvetica" font-size="8">docker push</text>
 
     <!-- Pipeline to Key Vault -->
-    <path d="M 170,418 L 280,418 L 280,435 L 960,435" fill="none" stroke="#9673A6" stroke-width="1" stroke-dasharray="5,3"/>
-    <polygon points="956,432 962,435 956,438" fill="#9673A6"/>
-    <text x="610" y="430" fill="#9673A6" font-family="Helvetica" font-size="8">fetch secrets</text>
+    <path d="M 170,415 L 280,415 L 280,439 L 990,439" fill="none" stroke="#9673A6" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="986,436 992,439 986,442" fill="#9673A6"/>
+    <text x="610" y="434" fill="#9673A6" font-family="Helvetica" font-size="8">fetch secrets</text>
 
     <!-- Legend -->
     <rect x="15" y="865" width="460" height="70" rx="6" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1"/>
     <text x="25" y="883" fill="#333333" font-family="Helvetica" font-size="10" font-weight="bold">Network Security:</text>
-    <text x="25" y="899" fill="#555555" font-family="Helvetica" font-size="9">Front Door (ServiceTag: AzureFrontDoor.Backend) → App Service (IP Restriction) → PostgreSQL (VNet Private)</text>
+    <text x="25" y="899" fill="#555555" font-family="Helvetica" font-size="9">Front Door (ServiceTag: AzureFrontDoor.Backend) &#x2192; App Service (IP Restriction) &#x2192; PostgreSQL (VNet Private)</text>
     <text x="25" y="913" fill="#555555" font-family="Helvetica" font-size="9">Secrets: Key Vault Reference (@Microsoft.KeyVault) / Auth: OIDC Federated Credentials</text>
-    <text x="25" y="927" fill="#555555" font-family="Helvetica" font-size="9">Container: ACR → App Service (Managed Identity AcrPull) / Database: Private DNS Zone + Subnet Delegation</text>
+    <text x="25" y="927" fill="#555555" font-family="Helvetica" font-size="9">Container: ACR &#x2192; App Service (Managed Identity AcrPull) / Database: Private DNS Zone + Subnet Delegation</text>
 
     <!-- Region Label -->
     <text x="700" y="900" fill="#888888" font-family="Helvetica" font-size="11" font-style="italic">Region: japaneast (East Japan)</text>
 
     <!-- Color Legend -->
-    <rect x="530" y="865" width="280" height="60" rx="6" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1"/>
-    <line x1="545" y1="882" x2="575" y2="882" stroke="#333333" stroke-width="1.5"/>
-    <text x="580" y="886" fill="#555555" font-family="Helvetica" font-size="9">Data Flow</text>
-    <line x1="545" y1="898" x2="575" y2="898" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
-    <text x="580" y="902" fill="#555555" font-family="Helvetica" font-size="9">Config / Deploy / Auxiliary</text>
-    <rect x="670" y="876" width="40" height="12" rx="3" fill="#BDD7EE" stroke="#2E75B6" stroke-width="1"/>
-    <text x="715" y="886" fill="#555555" font-family="Helvetica" font-size="9">Azure Service</text>
-    <rect x="670" y="894" width="40" height="12" rx="3" fill="#FFF2CC" stroke="#D6B656" stroke-width="1"/>
-    <text x="715" y="904" fill="#555555" font-family="Helvetica" font-size="9">Database</text>
+    <rect x="530" y="865" width="360" height="60" rx="6" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1"/>
+    <rect x="545" y="878" width="24" height="14" rx="3" fill="#0078D4" stroke="none"/>
+    <text x="574" y="890" fill="#555555" font-family="Helvetica" font-size="9">Azure Core Service</text>
+    <rect x="680" y="878" width="24" height="14" rx="3" fill="#00A36C" stroke="none"/>
+    <text x="709" y="890" fill="#555555" font-family="Helvetica" font-size="9">Security / Network</text>
+    <rect x="800" y="878" width="24" height="14" rx="3" fill="#2DA44E" stroke="none"/>
+    <text x="829" y="890" fill="#555555" font-family="Helvetica" font-size="9">GitHub</text>
+    <line x1="545" y1="902" x2="575" y2="902" stroke="#333333" stroke-width="1.5"/>
+    <text x="580" y="906" fill="#555555" font-family="Helvetica" font-size="9">Data Flow</text>
+    <line x1="680" y1="902" x2="710" y2="902" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="715" y="906" fill="#555555" font-family="Helvetica" font-size="9">Config / Deploy / Auxiliary</text>
   </g>
 </svg>
