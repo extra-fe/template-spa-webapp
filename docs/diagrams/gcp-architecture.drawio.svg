@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="1200" height="920" viewBox="-0.5 -0.5 1200 920" content="&lt;mxfile host=&quot;app.diagrams.net&quot;&gt;&lt;diagram name=&quot;GCP Architecture&quot; id=&quot;gcp-arch&quot;&gt;&lt;mxGraphModel dx=&quot;1200&quot; dy=&quot;920&quot; grid=&quot;1&quot; gridSize=&quot;10&quot; guides=&quot;1&quot; tooltips=&quot;1&quot; connect=&quot;1&quot; arrows=&quot;1&quot; fold=&quot;1&quot; page=&quot;1&quot; pageScale=&quot;1&quot; pageWidth=&quot;1200&quot; pageHeight=&quot;920&quot; math=&quot;0&quot; shadow=&quot;0&quot;&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;&lt;mxCell id=&quot;title&quot; value=&quot;Google Cloud Infrastructure Architecture&quot; style=&quot;text;html=1;fontSize=20;fontStyle=1;fillColor=none;align=center;verticalAlign=middle;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;300&quot; y=&quot;10&quot; width=&quot;600&quot; height=&quot;30&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;user&quot; value=&quot;User&quot; style=&quot;shape=mxgraph.aws4.client;whiteSpace=wrap;html=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;555&quot; y=&quot;50&quot; width=&quot;50&quot; height=&quot;50&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;auth0&quot; value=&quot;Auth0&amp;#xa;JWT / OAuth2 / JWKS&quot; style=&quot;rounded=1;whiteSpace=wrap;html=1;fillColor=#f0f0f0;fontSize=10;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;930&quot; y=&quot;50&quot; width=&quot;140&quot; height=&quot;50&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;gclb&quot; value=&quot;Cloud Load Balancing&amp;#xa;(External HTTPS LB)&amp;#xa;Cloud CDN Enabled&quot; style=&quot;shape=mxgraph.gcp2.external_https_load_balancer;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;556&quot; y=&quot;130&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;gcs&quot; value=&quot;Cloud Storage&amp;#xa;React SPA (Static Files)&quot; style=&quot;shape=mxgraph.gcp2.cloud_storage;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;146&quot; y=&quot;240&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;vpc&quot; value=&quot;VPC Network 10.0.0.0/16&quot; style=&quot;rounded=1;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;fillColor=none;strokeColor=#4285F4;strokeWidth=2.5;dashed=0;verticalAlign=top;fontColor=#4285F4;fontStyle=1;fontSize=12;align=left;spacingLeft=10;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;340&quot; y=&quot;230&quot; width=&quot;830&quot; height=&quot;540&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;cloudrun&quot; value=&quot;Cloud Run&amp;#xa;NestJS API (:3000)&amp;#xa;VPC Connector&quot; style=&quot;shape=mxgraph.gcp2.cloud_run;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;536&quot; y=&quot;460&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;cloudsql&quot; value=&quot;Cloud SQL&amp;#xa;PostgreSQL 16&amp;#xa;Private IP / Encrypted&quot; style=&quot;shape=mxgraph.gcp2.cloud_sql;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;855&quot; y=&quot;460&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;ar&quot; value=&quot;Artifact Registry&amp;#xa;Docker Repository&quot; style=&quot;shape=mxgraph.gcp2.artifact_registry;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;310&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;sm&quot; value=&quot;Secret Manager&amp;#xa;DB URL / Auth0 Config&quot; style=&quot;shape=mxgraph.gcp2.secret_manager;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;420&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=&quot;logging&quot; value=&quot;Cloud Logging&amp;#xa;Structured Logs&quot; style=&quot;shape=mxgraph.gcp2.cloud_logging;fillColor=#4285F4;fontColor=#232F3E;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=9;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;990&quot; y=&quot;530&quot; width=&quot;48&quot; height=&quot;48&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+  <defs/>
+  <g>
+    <!-- Title -->
+    <text x="600" y="25" fill="#333333" font-family="Helvetica" font-size="20" text-anchor="middle" font-weight="bold">Google Cloud Infrastructure Architecture</text>
+
+    <!-- User -->
+    <g transform="translate(560,50)">
+      <ellipse cx="20" cy="10" rx="10" ry="10" fill="#FFFFFF" stroke="#333333" stroke-width="1.5"/>
+      <line x1="20" y1="20" x2="20" y2="35" stroke="#333333" stroke-width="1.5"/>
+      <line x1="10" y1="26" x2="30" y2="26" stroke="#333333" stroke-width="1.5"/>
+      <line x1="20" y1="35" x2="12" y2="48" stroke="#333333" stroke-width="1.5"/>
+      <line x1="20" y1="35" x2="28" y2="48" stroke="#333333" stroke-width="1.5"/>
+      <text x="20" y="63" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">User</text>
+    </g>
+
+    <!-- Auth0 -->
+    <rect x="920" y="50" width="140" height="45" rx="8" fill="#F5F5F5" stroke="#999999" stroke-width="1.5"/>
+    <text x="990" y="68" fill="#333333" font-family="Helvetica" font-size="13" text-anchor="middle" font-weight="bold">Auth0</text>
+    <text x="990" y="83" fill="#666666" font-family="Helvetica" font-size="10" text-anchor="middle">JWT / OAuth2 / JWKS</text>
+
+    <!-- Auth0 arrow from user -->
+    <line x1="600" y1="65" x2="920" y2="65" stroke="#999999" stroke-width="1" stroke-dasharray="6,3"/>
+    <polygon points="916,62 922,65 916,68" fill="#999999"/>
+    <text x="760" y="58" fill="#999999" font-family="Helvetica" font-size="9" text-anchor="middle">OAuth2 / JWT (RS256)</text>
+
+    <!-- Cloud Load Balancing + CDN icon -->
+    <g transform="translate(550,130)">
+      <rect x="0" y="0" width="60" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="30" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud LB</text>
+      <text x="30" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">External HTTPS</text>
+      <line x1="8" y1="32" x2="52" y2="32" stroke="#FFFFFF" stroke-width="0.5" stroke-opacity="0.5"/>
+      <text x="30" y="42" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud CDN</text>
+    </g>
+    <text x="580" y="193" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Cloud Load Balancing</text>
+    <text x="580" y="207" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">External HTTPS LB + Cloud CDN</text>
+
+    <!-- User to Cloud LB arrow -->
+    <line x1="580" y1="115" x2="580" y2="130" stroke="#333333" stroke-width="2"/>
+    <polygon points="576,127 580,133 584,127" fill="#333333"/>
+    <text x="595" y="124" fill="#333333" font-family="Helvetica" font-size="9">HTTPS</text>
+
+    <!-- Cloud Storage icon -->
+    <g transform="translate(146,240)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Storage</text>
+      <rect x="10" y="32" width="28" height="8" rx="2" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="170" y="303" fill="#333333" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">Cloud Storage</text>
+    <text x="170" y="317" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">React SPA (Static Files)</text>
+
+    <!-- Cloud LB to Storage arrow -->
+    <path d="M 550,154 L 320,154 L 320,264 L 194,264" fill="none" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="198,261 192,264 198,267" fill="#333333"/>
+    <text x="340" y="148" fill="#333333" font-family="Helvetica" font-size="9">/* (Backend Bucket)</text>
+
+    <!-- VPC Box -->
+    <rect x="340" y="230" width="830" height="560" rx="12" fill="none" stroke="#4285F4" stroke-width="2.5"/>
+    <rect x="350" y="230" width="230" height="22" rx="4" fill="#E8F0FE" stroke="none"/>
+    <g transform="translate(352,232)">
+      <rect x="0" y="0" width="18" height="18" rx="2" fill="#4285F4" stroke="none"/>
+      <text x="9" y="13" fill="#FFFFFF" font-family="Helvetica" font-size="7" text-anchor="middle" font-weight="bold">VPC</text>
+    </g>
+    <text x="378" y="246" fill="#4285F4" font-family="Helvetica" font-size="12" font-weight="bold">VPC Network 10.0.0.0/16</text>
+
+    <!-- Public Subnet -->
+    <rect x="370" y="270" width="380" height="130" rx="8" fill="#E8F0FE" stroke="#4285F4" stroke-width="1.5" fill-opacity="0.3"/>
+    <text x="380" y="288" fill="#4285F4" font-family="Helvetica" font-size="10" font-weight="bold">Public Subnet 10.0.1.0/24 (asia-northeast1)</text>
+
+    <!-- Cloud NAT icon -->
+    <g transform="translate(395,300)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#4285F4" stroke="none"/>
+      <text x="22" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="22" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">NAT</text>
+      <text x="22" y="38" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Router</text>
+    </g>
+    <text x="417" y="358" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle">Cloud NAT</text>
+    <text x="417" y="370" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">(Cloud Router)</text>
+
+    <!-- IAP icon -->
+    <g transform="translate(530,300)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#EA4335" stroke="none"/>
+      <text x="22" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="7" text-anchor="middle" font-weight="bold">IAP</text>
+      <text x="22" y="28" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Tunnel</text>
+    </g>
+    <text x="552" y="358" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle">IAP Tunnel</text>
+    <text x="552" y="370" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">(Bastion alternative)</text>
+
+    <!-- Cloud Armor icon -->
+    <g transform="translate(660,300)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#EA4335" stroke="none"/>
+      <text x="22" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="22" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Armor</text>
+      <text x="22" y="38" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">WAF</text>
+    </g>
+    <text x="682" y="358" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle">Cloud Armor</text>
+    <text x="682" y="370" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">(WAF / DDoS)</text>
+
+    <!-- Private Subnet / Serverless VPC Access -->
+    <rect x="370" y="420" width="780" height="350" rx="8" fill="#FEF7E0" stroke="#F9AB00" stroke-width="1.5" fill-opacity="0.3"/>
+    <text x="380" y="438" fill="#F9AB00" font-family="Helvetica" font-size="10" font-weight="bold">Private Subnet 10.0.2.0/24 + Serverless VPC Access Connector</text>
+
+    <!-- Serverless NEG / Internal LB label -->
+    <g transform="translate(400,460)">
+      <rect x="0" y="0" width="60" height="44" rx="6" fill="#4285F4" stroke="none"/>
+      <text x="30" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Serverless</text>
+      <text x="30" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">NEG</text>
+      <text x="30" y="38" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">Backend Svc</text>
+    </g>
+    <text x="430" y="519" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Serverless NEG</text>
+    <text x="430" y="532" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Backend Service</text>
+
+    <!-- Cloud LB to Serverless NEG arrow -->
+    <path d="M 604,154 L 750,154 L 750,410 L 430,410 L 430,460" fill="none" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="427,456 430,462 433,456" fill="#333333"/>
+    <text x="765" y="300" fill="#333333" font-family="Helvetica" font-size="9" transform="rotate(90,765,300)">/api/* (URL Map)</text>
+
+    <!-- Cloud Run icon -->
+    <g transform="translate(536,560)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Run</text>
+      <rect x="10" y="32" width="28" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.4" stroke="none"/>
+      <rect x="10" y="38" width="20" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="560" y="623" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Cloud Run</text>
+    <text x="560" y="637" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">NestJS API (:3000)</text>
+    <text x="560" y="651" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">VPC Connector / Min: 0, Max: 10</text>
+
+    <!-- NEG to Cloud Run arrow -->
+    <line x1="440" y1="504" x2="536" y2="570" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="533,567 538,573 540,565" fill="#333333"/>
+    <text x="470" y="530" fill="#333333" font-family="Helvetica" font-size="9">:3000</text>
+
+    <!-- Cloud SQL icon -->
+    <g transform="translate(855,555)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="6" text-anchor="middle" font-weight="bold">SQL</text>
+      <text x="24" y="38" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">PostgreSQL</text>
+    </g>
+    <text x="879" y="618" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Cloud SQL</text>
+    <text x="879" y="632" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">PostgreSQL 16</text>
+    <text x="879" y="646" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Private IP / CMEK Encrypted</text>
+    <text x="879" y="660" fill="#555555" font-family="Helvetica" font-size="9" text-anchor="middle">Automatic Backups: 7d</text>
+
+    <!-- Cloud Run to Cloud SQL arrow -->
+    <line x1="584" y1="584" x2="855" y2="579" stroke="#333333" stroke-width="1.5"/>
+    <polygon points="851,576 857,579 851,582" fill="#333333"/>
+    <text x="720" y="573" fill="#333333" font-family="Helvetica" font-size="9">:5432 (Private IP)</text>
+
+    <!-- IAP to Cloud SQL arrow -->
+    <path d="M 552,350 L 552,410 L 879,410 L 879,555" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="876,551 879,557 882,551" fill="#999999"/>
+    <text x="730" y="405" fill="#999999" font-family="Helvetica" font-size="9">:5432 (IAP + Cloud SQL Proxy)</text>
+
+    <!-- Private Service Connect label -->
+    <rect x="700" y="555" width="130" height="40" rx="6" fill="#E8F0FE" stroke="#4285F4" stroke-width="1"/>
+    <text x="765" y="571" fill="#4285F4" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Private Service</text>
+    <text x="765" y="585" fill="#4285F4" font-family="Helvetica" font-size="8" text-anchor="middle">Connect (PSC)</text>
+
+    <!-- Artifact Registry icon -->
+    <g transform="translate(990,310)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Artifact</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Registry</text>
+      <rect x="10" y="32" width="28" height="8" rx="2" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="1014" y="373" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Artifact Registry</text>
+    <text x="1014" y="387" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Docker Repository</text>
+
+    <!-- Artifact Registry to Cloud Run -->
+    <path d="M 990,340 L 900,340 L 900,584 L 584,584" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="588,581 582,584 588,587" fill="#999999"/>
+    <text x="910" y="460" fill="#999999" font-family="Helvetica" font-size="9" transform="rotate(90,910,460)">image pull</text>
+
+    <!-- Secret Manager icon -->
+    <g transform="translate(990,420)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#EA4335" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Secret</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Manager</text>
+      <rect x="14" y="32" width="20" height="8" rx="2" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="1014" y="483" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Secret Manager</text>
+    <text x="1014" y="497" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">DB URL / Auth0 Config</text>
+    <text x="1014" y="509" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Deploy Config</text>
+
+    <!-- Secret Manager to Cloud Run -->
+    <path d="M 990,450 L 940,450 L 940,594 L 584,594" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="588,591 582,594 588,597" fill="#999999"/>
+    <text x="945" y="520" fill="#999999" font-family="Helvetica" font-size="9" transform="rotate(90,945,520)">secrets ref</text>
+
+    <!-- Cloud Logging icon -->
+    <g transform="translate(990,530)">
+      <rect x="0" y="0" width="48" height="48" rx="8" fill="#4285F4" stroke="none"/>
+      <text x="24" y="16" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="24" y="26" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Logging</text>
+      <rect x="8" y="32" width="32" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.4" stroke="none"/>
+      <rect x="8" y="38" width="24" height="3" rx="1" fill="#FFFFFF" fill-opacity="0.3" stroke="none"/>
+    </g>
+    <text x="1014" y="593" fill="#333333" font-family="Helvetica" font-size="10" text-anchor="middle" font-weight="bold">Cloud Logging</text>
+    <text x="1014" y="607" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Structured Logs</text>
+    <text x="1014" y="619" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">+ Cloud Monitoring</text>
+
+    <!-- Cloud Run to Logging -->
+    <path d="M 584,600 L 630,600 L 630,660 L 1014,660 L 1014,578" fill="none" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="1011,582 1014,576 1017,582" fill="#999999"/>
+    <text x="820" y="653" fill="#999999" font-family="Helvetica" font-size="9">auto logging</text>
+
+    <!-- VPC Connector box -->
+    <rect x="490" y="690" width="200" height="35" rx="6" fill="#F5F5F5" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="590" y="712" fill="#666666" font-family="Helvetica" font-size="9" text-anchor="middle">Serverless VPC Access Connector (10.0.8.0/28)</text>
+
+    <!-- CI/CD Section -->
+    <rect x="15" y="340" width="170" height="330" rx="8" fill="none" stroke="#0F9D58" stroke-width="1.5" stroke-dasharray="5,3"/>
+    <text x="100" y="358" fill="#0F9D58" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">CI/CD (Cloud Build)</text>
+
+    <!-- Cloud Build Backend icon -->
+    <g transform="translate(58,380)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#4285F4" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Build</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">(Backend)</text>
+    </g>
+    <text x="80" y="438" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Cloud Build (BE)</text>
+    <text x="80" y="450" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">Docker Build &#x2192; AR Push</text>
+    <text x="80" y="460" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">&#x2192; Cloud Run Deploy</text>
+
+    <!-- Cloud Build Frontend icon -->
+    <g transform="translate(58,475)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#4285F4" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Cloud</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Build</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">(Frontend)</text>
+    </g>
+    <text x="80" y="533" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Cloud Build (FE)</text>
+    <text x="80" y="545" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">yarn build &#x2192; GCS Upload</text>
+    <text x="80" y="555" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">&#x2192; CDN Cache Invalidation</text>
+
+    <!-- Service Account -->
+    <g transform="translate(58,570)">
+      <rect x="0" y="0" width="44" height="44" rx="6" fill="#EA4335" stroke="none"/>
+      <text x="22" y="14" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Service</text>
+      <text x="22" y="24" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle" font-weight="bold">Account</text>
+      <text x="22" y="36" fill="#FFFFFF" font-family="Helvetica" font-size="5" text-anchor="middle">WIF</text>
+    </g>
+    <text x="80" y="628" fill="#333333" font-family="Helvetica" font-size="9" text-anchor="middle" font-weight="bold">Service Account</text>
+    <text x="80" y="640" fill="#555555" font-family="Helvetica" font-size="8" text-anchor="middle">Workload Identity</text>
+    <text x="80" y="650" fill="#555555" font-family="Helvetica" font-size="7" text-anchor="middle">Federation (OIDC)</text>
+
+    <!-- GitHub -->
+    <rect x="30" y="655" width="140" height="40" rx="6" fill="#24292E" stroke="#24292E" stroke-width="1.5"/>
+    <text x="100" y="680" fill="#FFFFFF" font-family="Helvetica" font-size="11" text-anchor="middle" font-weight="bold">GitHub Repository</text>
+
+    <!-- Connections in CI/CD -->
+    <line x1="100" y1="655" x2="100" y2="620" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="97,623 100,617 103,623" fill="#999999"/>
+
+    <line x1="80" y1="570" x2="80" y2="525" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="77,528 80,522 83,528" fill="#999999"/>
+    <text x="95" y="548" fill="#999999" font-family="Helvetica" font-size="8">WIF</text>
+
+    <line x1="80" y1="475" x2="80" y2="430" stroke="#999999" stroke-width="1" stroke-dasharray="4,3"/>
+    <polygon points="77,433 80,427 83,433" fill="#999999"/>
+
+    <!-- Pipeline to GCS -->
+    <path d="M 170,497 L 220,497 L 220,264 L 194,264" fill="none" stroke="#0F9D58" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="198,261 192,264 198,262" fill="#0F9D58"/>
+    <text x="230" y="380" fill="#0F9D58" font-family="Helvetica" font-size="8" transform="rotate(-90,230,380)">upload dist/</text>
+
+    <!-- Pipeline to Artifact Registry -->
+    <path d="M 170,402 L 260,402 L 260,334 L 990,334" fill="none" stroke="#0F9D58" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="986,331 992,334 986,337" fill="#0F9D58"/>
+    <text x="610" y="328" fill="#0F9D58" font-family="Helvetica" font-size="8">docker push</text>
+
+    <!-- Pipeline to Secret Manager -->
+    <path d="M 170,415 L 280,415 L 280,444 L 990,444" fill="none" stroke="#EA4335" stroke-width="1" stroke-dasharray="5,3"/>
+    <polygon points="986,441 992,444 986,447" fill="#EA4335"/>
+    <text x="610" y="438" fill="#EA4335" font-family="Helvetica" font-size="8">fetch secrets</text>
+
+    <!-- Firewall Rules Legend -->
+    <rect x="15" y="830" width="550" height="35" rx="6" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1"/>
+    <text x="25" y="845" fill="#333333" font-family="Helvetica" font-size="9" font-weight="bold">Firewall Rules / Security:</text>
+    <text x="25" y="857" fill="#555555" font-family="Helvetica" font-size="8">Cloud Armor (WAF) &#x2192; Cloud LB &#x2192; Serverless NEG &#x2192; Cloud Run (VPC Connector) &#x2192; Cloud SQL (Private IP) / IAP &#x2192; SQL Proxy</text>
+
+    <!-- Region Label -->
+    <text x="700" y="875" fill="#888888" font-family="Helvetica" font-size="11" font-style="italic">Region: asia-northeast1 (Tokyo)</text>
+
+    <!-- Legend -->
+    <rect x="580" y="830" width="580" height="60" rx="6" fill="#FAFAFA" stroke="#CCCCCC" stroke-width="1"/>
+    <rect x="595" y="842" width="24" height="14" rx="3" fill="#4285F4" stroke="none"/>
+    <text x="624" y="854" fill="#555555" font-family="Helvetica" font-size="9">GCP Service (Blue)</text>
+    <rect x="730" y="842" width="24" height="14" rx="3" fill="#EA4335" stroke="none"/>
+    <text x="759" y="854" fill="#555555" font-family="Helvetica" font-size="9">Security / Identity</text>
+    <rect x="850" y="842" width="24" height="14" rx="3" fill="#0F9D58" stroke="none"/>
+    <text x="879" y="854" fill="#555555" font-family="Helvetica" font-size="9">CI/CD</text>
+    <rect x="930" y="842" width="24" height="14" rx="3" fill="#F9AB00" stroke="none"/>
+    <text x="959" y="854" fill="#555555" font-family="Helvetica" font-size="9">Network</text>
+    <line x1="595" y1="868" x2="625" y2="868" stroke="#333333" stroke-width="1.5"/>
+    <text x="630" y="872" fill="#555555" font-family="Helvetica" font-size="9">Data Flow</text>
+    <line x1="730" y1="868" x2="760" y2="868" stroke="#999999" stroke-width="1" stroke-dasharray="5,3"/>
+    <text x="765" y="872" fill="#555555" font-family="Helvetica" font-size="9">Config / Deploy / Auxiliary</text>
+    <text x="920" y="872" fill="#888888" font-family="Helvetica" font-size="8" font-style="italic">* Icon colors follow Google Cloud brand guidelines</text>
+  </g>
+</svg>
