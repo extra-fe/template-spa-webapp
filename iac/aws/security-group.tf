@@ -1,3 +1,4 @@
+# ALB用SG: 内部ALBに割り当て(インバウンドはCloudFront VPC Originからのみ許可)
 resource "aws_security_group" "alb" {
   name = "${var.app-name}-${var.environment}-internal-alb"
   tags = {
@@ -6,6 +7,7 @@ resource "aws_security_group" "alb" {
   vpc_id = aws_vpc.vpc.id
 }
 
+# ALBアウトバウンド: 全外向け通信を許可(ECSへの転送等)
 resource "aws_security_group_rule" "alb_out" {
   security_group_id = aws_security_group.alb.id
   type              = "egress"
@@ -15,6 +17,7 @@ resource "aws_security_group_rule" "alb_out" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+# ECSサービス用SG
 resource "aws_security_group" "ecs_service" {
   name = "${var.app-name}-${var.environment}-ecs-service"
   tags = {
@@ -24,6 +27,7 @@ resource "aws_security_group" "ecs_service" {
   timeouts {}
 }
 
+# ECSインバウンド: ALBからAPI公開ポート(例:3000)のみ許可
 resource "aws_security_group_rule" "ecs_service_in_alb" {
   security_group_id        = aws_security_group.ecs_service.id
   type                     = "ingress"
@@ -34,6 +38,7 @@ resource "aws_security_group_rule" "ecs_service_in_alb" {
   description              = "internal ALB target group"
 }
 
+# ECSアウトバウンド: 全外向け通信を許可(NAT経由のSaaS呼び出し等)
 resource "aws_security_group_rule" "ecs_service_out" {
   security_group_id = aws_security_group.ecs_service.id
   type              = "egress"
@@ -43,6 +48,8 @@ resource "aws_security_group_rule" "ecs_service_out" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+# CloudFront VPC Origin専用の管理SGを参照(VPC Origin作成時にAWSが自動生成)
+# このSGからのトラフィックだけをALBに通すために利用
 data "aws_security_group" "cloudfront_vpc_origin" {
   filter {
     name   = "group-name"
@@ -55,6 +62,7 @@ data "aws_security_group" "cloudfront_vpc_origin" {
   depends_on = [aws_cloudfront_vpc_origin.alb]
 }
 
+# ALBインバウンド: CloudFront VPC OriginのSGからのHTTP(80)のみ許可
 resource "aws_security_group_rule" "alb_in" {
   security_group_id        = aws_security_group.alb.id
   type                     = "ingress"
@@ -65,6 +73,8 @@ resource "aws_security_group_rule" "alb_in" {
   description              = "CloudFront VPC Origin http"
 }
 
+
+# DB(Aurora)用SG
 resource "aws_security_group" "db" {
   name = "${var.app-name}-${var.environment}-db"
   tags = {
@@ -75,6 +85,7 @@ resource "aws_security_group" "db" {
 }
 
 
+# DBインバウンド: ECSサービスからのPostgreSQL(5432)接続を許可
 resource "aws_security_group_rule" "db_in_ecs_service" {
   security_group_id        = aws_security_group.db.id
   type                     = "ingress"
@@ -86,6 +97,7 @@ resource "aws_security_group_rule" "db_in_ecs_service" {
 }
 
 
+# DBインバウンド: 踏み台EC2からのPostgreSQL(5432)接続を許可(運用時のメンテ用)
 resource "aws_security_group_rule" "db_in_bastion" {
   security_group_id        = aws_security_group.db.id
   type                     = "ingress"
@@ -97,6 +109,7 @@ resource "aws_security_group_rule" "db_in_bastion" {
 }
 
 
+# DBアウトバウンド: 全外向け許可
 resource "aws_security_group_rule" "db_out" {
   security_group_id = aws_security_group.db.id
   type              = "egress"
@@ -106,6 +119,7 @@ resource "aws_security_group_rule" "db_out" {
   cidr_blocks       = ["0.0.0.0/0"]
 }
 
+# 踏み台EC2用SG
 resource "aws_security_group" "bastion" {
   description = "bastion"
   name        = "${var.environment}-${var.app-name}-bastion"
@@ -116,6 +130,8 @@ resource "aws_security_group" "bastion" {
   timeouts {}
 }
 
+# 踏み台インバウンド: 開発者ローカルPCのIPからのみ全ポート許可
+# (Session Manager運用が前提のため通常は不要だが、ポートフォワード補助用)
 resource "aws_security_group_rule" "bastion_in_mypc" {
   security_group_id = aws_security_group.bastion.id
   type              = "ingress"
@@ -126,6 +142,7 @@ resource "aws_security_group_rule" "bastion_in_mypc" {
   description       = "my pc"
 }
 
+# 踏み台アウトバウンド: 全外向け許可(SSMエンドポイント・DB等への通信用)
 resource "aws_security_group_rule" "bastion_out" {
   security_group_id = aws_security_group.bastion.id
   type              = "egress"
@@ -136,6 +153,7 @@ resource "aws_security_group_rule" "bastion_out" {
 }
 
 
+# SSM用VPCエンドポイント向けSG(Session Manager等のためのインターフェイスエンドポイントに付与)
 resource "aws_security_group" "ssm" {
   description = "ssm"
   name        = "${var.environment}-${var.app-name}-ssm"
@@ -146,6 +164,7 @@ resource "aws_security_group" "ssm" {
   timeouts {}
 }
 
+# SSMエンドポイントへのインバウンド: VPC内部からのHTTPS(443)のみ許可
 resource "aws_security_group_rule" "ssm_in" {
   security_group_id = aws_security_group.ssm.id
   type              = "ingress"
@@ -156,6 +175,7 @@ resource "aws_security_group_rule" "ssm_in" {
   description       = "ssm"
 }
 
+# SSMエンドポイントSGからのアウトバウンド: 全許可
 resource "aws_security_group_rule" "ssm_out" {
   security_group_id = aws_security_group.ssm.id
   type              = "egress"

@@ -1,13 +1,16 @@
+# AWSプロバイダ: 東京リージョン(ap-northeast-1)を既定とする
 provider "aws" {
   region = "ap-northeast-1"
 }
 
+# Auth0プロバイダ: テナント情報を環境変数(terraform.tfvars)から注入
 provider "auth0" {
   domain        = var.auth0_domain
   client_id     = var.auth0_client_id
   client_secret = var.auth0_client_secret
 }
 
+# Terraform本体とプロバイダのバージョン固定
 terraform {
   required_version = ">= 1.13.5"
   required_providers {

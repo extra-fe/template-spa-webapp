@@ -1,3 +1,5 @@
+# Auth0アプリケーション(SPA): フロントエンドからの認証フロー用クライアント
+# - コールバック/ログアウト/Web Origin に CloudFront のドメインを許可
 resource "auth0_client" "app" {
   allowed_logout_urls = [
     "https://${aws_cloudfront_distribution.cdn.domain_name}",
@@ -23,6 +25,7 @@ resource "auth0_client" "app" {
   }
 }
 
+# Auth0 API(Resource Server): バックエンドが検証するアクセストークンのaudienceを定義
 resource "auth0_resource_server" "audience" {
   name        = "${var.app-name}-${var.environment}-aws-audience"
   identifier  = "https://${aws_cloudfront_distribution.cdn.domain_name}"

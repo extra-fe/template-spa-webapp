@@ -1,3 +1,4 @@
+# 内部ALB: CloudFront(VPC Origin)からのリクエストを受けてECSタスクへ振り分け
 resource "aws_lb" "alb" {
   drop_invalid_header_fields = false
   enable_deletion_protection = false
@@ -21,6 +22,7 @@ resource "aws_lb" "alb" {
   }
 }
 
+# HTTPリスナー(80): 既定では404を返し、リスナールールにマッチしたものだけ転送する
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
@@ -37,6 +39,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+# リスナールール: /api/* パスのリクエストをECSサービス向けターゲットグループへ転送
 resource "aws_lb_listener_rule" "from_cloudfront" {
   listener_arn = aws_lb_listener.http.arn
   priority     = 1

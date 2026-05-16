@@ -1,3 +1,4 @@
+# CodePipelineのDeployステージで参照するファイル名 と ECSサービスARN
 locals {
   image-definition-file-name = "imagedefinitions.json"
   ecs_service_arn = format(
@@ -9,6 +10,7 @@ locals {
   )
 }
 
+# バックエンド用CodePipeline: GitHub Push → CodeBuild(Dockerビルド/ECR Push) → ECSデプロイ
 resource "aws_codepipeline" "backend" {
   execution_mode = "QUEUED"
   name           = "${var.app-name}-${var.environment}-backend"
@@ -113,6 +115,7 @@ resource "aws_codepipeline" "backend" {
 }
 
 
+# CodePipeline実行用IAMロール(自AWSアカウントからのみAssume可)
 resource "aws_iam_role" "backend-codepipeline" {
   assume_role_policy = jsonencode(
     {
@@ -141,6 +144,10 @@ resource "aws_iam_role" "backend-codepipeline" {
 }
 
 
+# CodePipelineロールにインラインで権限付与
+# - CodeBuildの起動 / ECRイメージ情報参照 / S3アーティファクト読み書き
+# - CodeStar Connections(GitHub)利用 / CloudWatch Logs / ECSデプロイ操作
+# - ECSタスク実行ロール・タスクロールに対するiam:PassRole
 resource "aws_iam_role_policy" "backend-codepipeline" {
   name = "inline-2"
   policy = jsonencode(
@@ -281,6 +288,7 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
   role = aws_iam_role.backend-codepipeline.name
 }
 
+# バックエンドCodeBuildプロジェクト: Dockerイメージのビルド・ECRへのPush・imagedefinitions.json生成
 resource "aws_codebuild_project" "backend" {
   build_timeout      = 60
   name               = "${var.app-name}-${var.environment}-backend-codebuild"
@@ -351,6 +359,7 @@ resource "aws_codebuild_project" "backend" {
   }
 }
 
+# CodeBuild実行用IAMロール
 resource "aws_iam_role" "backend-codebuild" {
   assume_role_policy = jsonencode(
     {
@@ -373,6 +382,9 @@ resource "aws_iam_role" "backend-codebuild" {
   tags                 = {}
 }
 
+# CodeBuildロール用インラインポリシー
+# - ECR Push / GetAuthorizationToken
+# - CloudWatch Logs出力 / アーティファクトS3アクセス / テストレポート出力
 resource "aws_iam_role_policy" "backend-codebuild" {
   name = "inline-2"
   policy = jsonencode(

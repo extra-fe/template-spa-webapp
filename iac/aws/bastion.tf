@@ -1,3 +1,4 @@
+# Amazon Linux 2023 の最新AMIを動的に取得(踏み台EC2のベースイメージ)
 data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
@@ -23,6 +24,7 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
+# 踏み台EC2: Session Manager経由でプライベートサブネット内のRDS等にアクセスする目的
 resource "aws_instance" "bastion" {
   ami                         = "ami-0292622b22bd52948"
   associate_public_ip_address = false
@@ -64,11 +66,13 @@ resource "aws_instance" "bastion" {
   timeouts {}
 }
 
+# 踏み台EC2に紐付けるインスタンスプロファイル(IAMロールのEC2へのアタッチ用)
 resource "aws_iam_instance_profile" "bastion" {
   name = "${var.environment}-bastion_profile"
   role = aws_iam_role.bastion.name
 }
 
+# 踏み台EC2用IAMロール(EC2サービスがAssume Role可)
 resource "aws_iam_role" "bastion" {
   assume_role_policy = jsonencode(
     {
@@ -93,6 +97,7 @@ resource "aws_iam_role" "bastion" {
   }
 }
 
+# Session Managerによる接続を可能にするためのAWS管理ポリシーをアタッチ
 resource "aws_iam_role_policy_attachment" "bastion_ssm_core" {
   role       = aws_iam_role.bastion.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"

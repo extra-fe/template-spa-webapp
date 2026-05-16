@@ -1,3 +1,5 @@
+# SSM用VPCインターフェイスエンドポイント
+# プライベートサブネット内の踏み台EC2が、NAT/IGWを経由せずにSession Managerへ接続するため
 resource "aws_vpc_endpoint" "ssm" {
   ip_address_type = "ipv4"
   policy = jsonencode(
@@ -31,6 +33,7 @@ resource "aws_vpc_endpoint" "ssm" {
   timeouts {}
 }
 
+# Session Managerのメッセージ通信用VPCエンドポイント(SSM Agentが利用)
 resource "aws_vpc_endpoint" "ssmmessages" {
   ip_address_type = "ipv4"
   policy = jsonencode(
@@ -64,6 +67,7 @@ resource "aws_vpc_endpoint" "ssmmessages" {
   timeouts {}
 }
 
+# EC2 MessagesのVPCエンドポイント(SSM AgentがEC2 APIメッセージのやりとりに使用)
 resource "aws_vpc_endpoint" "ec2messages" {
   ip_address_type = "ipv4"
   policy = jsonencode(
