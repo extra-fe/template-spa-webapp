@@ -65,7 +65,6 @@ resource "aws_security_group_rule" "alb_in" {
   description              = "CloudFront VPC Origin http"
 }
 
-
 resource "aws_security_group" "db" {
   name = "${var.app-name}-${var.environment}-db"
   tags = {
@@ -74,6 +73,7 @@ resource "aws_security_group" "db" {
   vpc_id = aws_vpc.vpc.id
   timeouts {}
 }
+
 
 resource "aws_security_group_rule" "db_in_ecs_service" {
   security_group_id        = aws_security_group.db.id
@@ -84,6 +84,7 @@ resource "aws_security_group_rule" "db_in_ecs_service" {
   source_security_group_id = aws_security_group.ecs_service.id
   description              = "API(ECS Service)"
 }
+
 
 resource "aws_security_group_rule" "db_in_bastion" {
   security_group_id        = aws_security_group.db.id
