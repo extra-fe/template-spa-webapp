@@ -109,6 +109,7 @@ terraform init && terraform apply
 | [AWS構成図](./docs/diagrams/aws-architecture.drawio.svg) | AWS インフラ構成図 (Draw.io SVG) |
 | [Azure構成図](./docs/diagrams/azure-architecture.drawio.svg) | Azure インフラ構成図 (Draw.io SVG) |
 | [CI/CDパイプライン図](./docs/diagrams/cicd-pipeline.drawio.svg) | AWS/Azure CI/CD 比較図 (Draw.io SVG) |
+| [運用・調査コマンド](./docs/operations.md) | CloudWatch Logs・Athena・ECSヘルスチェック等の調査用コマンド集 |
 
 ## 正誤表
 
@@ -121,46 +122,4 @@ terraform init && terraform apply
 
 ## コマンドリファレンス
 
-### AWS - MFAトークン取得 (PowerShell)
-
-```powershell
-$mfa_device='[識別子]'
-
-$Env:AWS_ACCESS_KEY_ID=''
-$Env:AWS_SECRET_ACCESS_KEY=''
-$Env:AWS_SESSION_TOKEN=''
-
-$token=Read-Host
-$cre=(aws sts get-session-token --serial-number $mfa_device --token-code $token) | ConvertFrom-Json
-
-$Env:AWS_ACCESS_KEY_ID=$cre.Credentials.AccessKeyId
-$Env:AWS_SECRET_ACCESS_KEY=$cre.Credentials.SecretAccessKey
-$Env:AWS_SESSION_TOKEN=$cre.Credentials.SessionToken
-```
-
-### AWS - リソース削除
-
-```powershell
-# S3バケットを空にする (バケット名は実際のものに変更)
-aws s3 rm s3://sandbox-aws-dev-artifact-xxxxx --recursive
-aws s3 rm s3://sandbox-aws-dev-web-xxxxx --recursive
-
-# ECRリポジトリを空にする
-$repositoryName = "dev/sandbox-aws-backend"
-$imageList = aws ecr list-images --repository-name $repositoryName --query "imageIds[*]" --output json | ConvertFrom-Json
-foreach ($image in $imageList) {
-    $imageDigest = $image.imageDigest
-    $imageTag = $image.imageTag
-    $imageId = @{}
-    if ($imageDigest) { $imageId["imageDigest"] = $imageDigest }
-    if ($imageTag) { $imageId["imageTag"] = $imageTag }
-    aws ecr batch-delete-image --repository-name $repositoryName --image-ids (ConvertTo-Json @($imageId))
-}
-```
-
-### Docker
-
-```bash
-docker build -t sandbox-backend -f ./Dockerfile .
-docker run -p 3000:3000 -e LOG_LEVEL=error sandbox-backend:latest
-```
+MFA認証・リソース削除・調査コマンド等は [運用・調査コマンドリファレンス](./docs/operations.md) を参照してください。
