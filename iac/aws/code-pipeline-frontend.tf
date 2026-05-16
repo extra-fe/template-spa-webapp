@@ -1,8 +1,10 @@
+# CodePipelineのアーティファクト保管用S3バケット(frontend/backend共用)
 resource "aws_s3_bucket" "artifact" {
   bucket = "${var.app-name}-${var.environment}-artifact-${random_string.suffix.result}"
   tags   = {}
 }
 
+# アーティファクトバケットへのパブリックアクセスを全面ブロック
 resource "aws_s3_bucket_public_access_block" "artifact" {
   block_public_acls       = true
   block_public_policy     = true
@@ -11,6 +13,7 @@ resource "aws_s3_bucket_public_access_block" "artifact" {
   restrict_public_buckets = true
 }
 
+# フロントエンド用CodePipeline: GitHub Push → CodeBuild(Vite build → S3アップロード → CFインバリデーション)
 resource "aws_codepipeline" "frontend" {
   execution_mode = "QUEUED"
   name           = "${var.app-name}-${var.environment}-frontend"
@@ -93,6 +96,9 @@ resource "aws_codepipeline" "frontend" {
   }
 }
 
+# フロントエンドCodeBuildプロジェクト
+# - .envにAuth0/CloudFrontの値を埋め込んで yarn build → distをS3へ同期
+# - 最後にCloudFrontキャッシュをインバリデーション(/*)
 resource "aws_codebuild_project" "frontend" {
   badge_enabled      = false
   build_timeout      = 60
@@ -155,6 +161,7 @@ resource "aws_codebuild_project" "frontend" {
 }
 
 
+# フロントエンド用CodePipeline実行ロール
 resource "aws_iam_role" "codepipeline_frontend" {
   assume_role_policy = jsonencode(
     {
@@ -176,6 +183,7 @@ resource "aws_iam_role" "codepipeline_frontend" {
   tags                 = {}
 }
 
+# CodePipelineロール用ポリシー: CodeStar Connections利用 / アーティファクトPut / CodeBuild起動 / ログ出力
 resource "aws_iam_policy" "codepipeline_frontend" {
   description = null
   name        = "codepipeline-${var.app-name}-${var.environment}-frontend-policy"
@@ -228,12 +236,14 @@ resource "aws_iam_policy" "codepipeline_frontend" {
   tags = {}
 }
 
+# CodePipelineロールへポリシーをアタッチ
 resource "aws_iam_role_policy_attachment" "codepipeline_frontend" {
   role       = aws_iam_role.codepipeline_frontend.name
   policy_arn = aws_iam_policy.codepipeline_frontend.arn
 
 }
 
+# フロントエンドCodeBuild実行ロール
 resource "aws_iam_role" "codebuild_frontend" {
   assume_role_policy = jsonencode(
     {
@@ -254,6 +264,10 @@ resource "aws_iam_role" "codebuild_frontend" {
   tags = {}
 }
 
+# CodeBuildロール用ポリシー:
+# - CloudWatch Logs出力 / テストレポート出力
+# - アーティファクトS3の読み込み / Webバケット(S3)への書き込み
+# - CloudFrontのインバリデーション実行
 resource "aws_iam_policy" "codebuild_frontend" {
   description = null
   name        = "codebuild-${var.app-name}-${var.environment}-frontend-policy"
@@ -305,6 +319,7 @@ resource "aws_iam_policy" "codebuild_frontend" {
   tags = {}
 }
 
+# CodeBuildロールへポリシーをアタッチ
 resource "aws_iam_role_policy_attachment" "codebuild_frontend" {
   role       = aws_iam_role.codebuild_frontend.name
   policy_arn = aws_iam_policy.codebuild_frontend.arn

@@ -16,11 +16,11 @@ variable "codestar-connection-arn" {
   description = "【環境変数で指定】接続のarn"
 }
 
-## AWSアカウントIDとリージョンの変数
+## AWSアカウントIDとリージョンの変数(実行中のAWS環境から自動取得)
 data "aws_caller_identity" "self" {}
 data "aws_region" "current" {}
 
-## アプリ名と環境
+## アプリ名と環境(各リソース名のプレフィックスとして利用)
 variable "app-name" {
   default = "sandbox-aws"
 }
@@ -39,7 +39,7 @@ variable "target-branch" {
   description = "このブランチにPushされたときにCodePipelineをトリガー"
 }
 
-## S3のバケット名をユニークにするための乱数
+## S3のバケット名をユニークにするための乱数(グローバル一意制約への対応)
 resource "random_string" "suffix" {
   length  = 5
   upper   = false
@@ -53,17 +53,21 @@ variable "backend-src-root" {
   description = "backendのルートパス"
 }
 
+# VPCに割り当てるCIDRブロック
 variable "vpc_cidr_block" {
   default = "172.16.0.0/16"
 }
+# パブリックサブネット(AZ-1a)のCIDR
 variable "subnet_public1a_cidr_block" {
   default = "172.16.1.0/24"
 }
 
+# プライベートサブネット(AZ-1a)のCIDR
 variable "subnet_private1a_cidr_block" {
   default = "172.16.2.0/24"
 }
 
+# プライベートサブネット(AZ-1c)のCIDR
 variable "subnet_private1c_cidr_block" {
   default = "172.16.3.0/24"
 }

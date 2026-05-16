@@ -1,3 +1,4 @@
+# DBサブネットグループ: Auroraクラスタを配置する2AZのプライベートサブネット
 resource "aws_db_subnet_group" "db_subnet_group" {
   name = "${var.app-name}-${var.environment}"
   subnet_ids = [
@@ -6,12 +7,14 @@ resource "aws_db_subnet_group" "db_subnet_group" {
   ]
 }
 
+# DBマスターパスワード: 16桁のランダム文字列で自動生成
 resource "random_string" "db_password" {
   length           = 16
   special          = false
   override_special = "!#$&"
 }
 
+# DB接続文字列(DATABASE_URL)を組み立て: SSMパラメータに保存しECSタスクへ注入する
 locals {
   db_raw_password     = random_string.db_password.result
   db_encoded_password = urlencode(local.db_raw_password)
@@ -33,6 +36,9 @@ locals {
   )
 }
 
+# Aurora PostgreSQL Serverless v2 クラスタ
+# - 利用がない時間帯は自動で一時停止 (seconds_until_auto_pause)
+# - min_capacity=0 でゼロまでスケールダウン可能
 resource "aws_rds_cluster" "cluster" {
   cluster_identifier         = "${var.app-name}-${var.environment}-db-cluster"
   engine                     = "aurora-postgresql"
@@ -55,6 +61,7 @@ resource "aws_rds_cluster" "cluster" {
   skip_final_snapshot = true
 }
 
+# Serverless v2 のDBインスタンス(クラスタへ紐付ける実体)
 resource "aws_rds_cluster_instance" "instance" {
   identifier         = "${var.app-name}-${var.environment}-db-instance"
   cluster_identifier = aws_rds_cluster.cluster.id
@@ -63,6 +70,7 @@ resource "aws_rds_cluster_instance" "instance" {
   engine_version     = aws_rds_cluster.cluster.engine_version
 }
 
+# SSMパラメータストア(SecureString): DATABASE_URLをECSタスクのsecretsとして参照させる
 resource "aws_ssm_parameter" "db_connection_string" {
   data_type        = "text"
   name             = "/${var.environment}/connection_strings/${var.app-name}"

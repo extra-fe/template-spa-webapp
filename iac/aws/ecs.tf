@@ -1,3 +1,4 @@
+# ALBターゲットグループ: ECSタスク(FARGATE/IP)を対象にヘルスチェックする
 resource "aws_lb_target_group" "to_ecs_service" {
   deregistration_delay          = "300"
   load_balancing_algorithm_type = "round_robin"
@@ -27,16 +28,21 @@ resource "aws_lb_target_group" "to_ecs_service" {
   }
 }
 
+# ECSクラスタ: バックエンドAPIタスクを動かす論理境界
 resource "aws_ecs_cluster" "cluster" {
   name = "${var.app-name}-${var.environment}-cluster"
   tags = {}
 }
 
+# CloudWatch Logsロググループ: ECSコンテナの標準出力を集約(保持7日)
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.app-name}-${var.environment}-log"
   retention_in_days = 7
 }
 
+# ECSタスク定義: Fargate上で動作するバックエンドコンテナの仕様
+# - 環境変数: Auth0/CORS/ログレベル等
+# - secrets: DATABASE_URL を SSM SecureString から注入
 resource "aws_ecs_task_definition" "task_definition" {
   container_definitions = jsonencode(
     [
@@ -122,6 +128,7 @@ resource "aws_ecs_task_definition" "task_definition" {
 }
 
 
+# ECSタスクロール: コンテナアプリ自身がAWSサービスを呼ぶときに引き受けるロール
 resource "aws_iam_role" "ecs_task" {
   assume_role_policy = jsonencode(
     {
@@ -144,6 +151,7 @@ resource "aws_iam_role" "ecs_task" {
   tags        = {}
 }
 
+# ECSタスク実行ロール: ECSエージェントがイメージ取得・SSM参照・ログ出力に使うロール
 resource "aws_iam_role" "execute_ecs_task" {
   assume_role_policy = jsonencode(
     {
@@ -166,6 +174,10 @@ resource "aws_iam_role" "execute_ecs_task" {
 }
 
 
+# タスク実行ロール用インラインポリシー
+# - ECR: バックエンドイメージのプル関連権限
+# - SSM: DATABASE_URLのSecureString取得
+# - KMS: SecureStringの復号
 resource "aws_iam_role_policy" "execute_ecs_task" {
   name = "inline-2"
   policy = jsonencode(
@@ -207,11 +219,14 @@ resource "aws_iam_role_policy" "execute_ecs_task" {
   role = aws_iam_role.execute_ecs_task.name
 }
 
+# AWS管理ポリシー(ECSタスク実行に必要な標準権限)をアタッチ
 resource "aws_iam_role_policy_attachment" "managed-ECSTaskExecutionRolePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
   role       = aws_iam_role.execute_ecs_task.name
 }
 
+# ECSサービス: タスク定義を1コピー以上維持し、ALBターゲットグループに自動登録
+# - task_definition の変更は CodePipeline 経由で行うため lifecycle で無視
 resource "aws_ecs_service" "service" {
   cluster                            = aws_ecs_cluster.cluster.arn
   deployment_maximum_percent         = 200
