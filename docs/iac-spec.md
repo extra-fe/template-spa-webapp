@@ -88,10 +88,13 @@ CloudFront / Front Door (CDN)
 
 **CloudFront ビヘイビア:**
 
-| パスパターン | オリジン | キャッシュ |
-|---|---|---|
-| `*` (デフォルト) | S3 | 有効 |
-| `/api/*` | ALB (VPC Origin) | 無効 |
+| 優先度 | パスパターン | オリジン | キャッシュポリシー | 備考 |
+|---|---|---|---|---|
+| デフォルト | `*` | S3 | Managed-CachingOptimized (有効) | 静的アセット |
+| 1 | `/index.html` | S3 | Managed-CachingDisabled (無効) | 再デプロイ時に常に最新を返すため |
+| 2 | `/api/*` | ALB (VPC Origin) | Managed-CachingDisabled (無効) | 全ヘッダをオリジンへ転送 |
+
+> `/index.html` は CloudFront でのキャッシュ無効化に加え、S3 アップロード時に `Cache-Control: no-store, no-cache` を付与することでブラウザキャッシュも抑止している。
 
 ### 3.4 バックエンド (ECS Fargate)
 
@@ -161,7 +164,9 @@ Source (GitHub/CodeStar)
   ▼
 Build (CodeBuild)
   │ yarn install → yarn build
-  │ S3アップロード → CloudFrontキャッシュ無効化
+  │ S3アップロード (index.html を除く全ファイル: aws s3 sync --delete --exclude "index.html")
+  │ index.html アップロード (Cache-Control: no-store, no-cache)
+  │ CloudFrontキャッシュ無効化 (/*)
 ```
 
 ### 3.9 Auth0
