@@ -24,7 +24,7 @@ data "aws_ami" "amazon_linux_2023" {
 }
 
 resource "aws_instance" "bastion" {
-  ami                         = data.aws_ami.amazon_linux_2023.id
+  ami                         = "ami-0292622b22bd52948"
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.bastion.name
   instance_type               = "t2.micro"
