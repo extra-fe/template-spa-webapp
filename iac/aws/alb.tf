@@ -16,8 +16,8 @@ resource "aws_lb" "alb" {
   ]
   tags = {}
   access_logs {
-    enabled = false
-    bucket  = ""
+    enabled = true                      # 変更
+    bucket  = aws_s3_bucket.alb_logs.id # 変更
   }
 }
 
@@ -54,3 +54,79 @@ resource "aws_lb_listener_rule" "from_cloudfront" {
     }
   }
 }
+
+
+resource "aws_s3_bucket" "alb_logs" {
+  bucket        = "${var.app-name}-${var.environment}-alb-logs-${random_string.suffix.result}"
+  force_destroy = true
+  tags          = {}
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  rule {
+    id     = "expire"
+    status = "Enabled"
+
+    expiration {
+      days = 30 # 必要に応じて変更
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect    = "Allow"
+        Principal = { Service = "logdelivery.elasticloadbalancing.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.alb_logs.arn}/AWSLogs/${data.aws_caller_identity.self.account_id}/*"
+      }
+    ]
+  })
+}
+
+# Athenaクエリ結果用S3バケット
+resource "aws_s3_bucket" "athena_results" {
+  bucket        = "${var.app-name}-${var.environment}-athena-results-${random_string.suffix.result}"
+  force_destroy = true
+  tags          = {}
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    id     = "expire"
+    status = "Enabled"
+
+    expiration {
+      days = 7
+    }
+  }
+}
+
+# Athenaワークグループ
+resource "aws_athena_workgroup" "alb_logs" {
+  name          = "${var.app-name}-${var.environment}-alb-logs"
+  force_destroy = true
+
+  configuration {
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/results/"
+    }
+  }
+}
+
+# AthenaデータベースDB
+resource "aws_athena_database" "alb_logs" {
+  name   = "${replace(var.app-name, "-", "_")}_${var.environment}_alb_logs"
+  bucket = aws_s3_bucket.athena_results.bucket
+}
+
+
