@@ -153,7 +153,8 @@ resource "aws_codebuild_project" "frontend" {
                      - cat .env
                      - yarn install
                      - yarn build
-                     - aws s3 cp ./dist s3://${aws_s3_bucket.web.bucket}/ --recursive
+                     - aws s3 sync ./dist s3://${aws_s3_bucket.web.bucket}/ --delete --exclude "index.html"
+                     - aws s3 cp ./dist/index.html s3://${aws_s3_bucket.web.bucket}/index.html --cache-control "no-store, no-cache"
                      - aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.cdn.id} --paths "/*"
           EOT
     type      = "CODEPIPELINE"
@@ -303,7 +304,15 @@ resource "aws_iam_policy" "codebuild_frontend" {
           Resource = "${aws_s3_bucket.artifact.arn}/*"
         },
         {
-          Action   = "s3:PutObject"
+          Action   = "s3:ListBucket"
+          Effect   = "Allow"
+          Resource = aws_s3_bucket.web.arn
+        },
+        {
+          Action = [
+            "s3:PutObject",
+            "s3:DeleteObject",
+          ]
           Effect   = "Allow"
           Resource = "${aws_s3_bucket.web.arn}/*"
         },
