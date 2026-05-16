@@ -37,7 +37,7 @@ resource "aws_rds_cluster" "cluster" {
   cluster_identifier         = "${var.app-name}-${var.environment}-db-cluster"
   engine                     = "aurora-postgresql"
   engine_mode                = "provisioned"
-  engine_version             = "16.6"
+  engine_version             = "16.11"
   database_name              = replace("${var.app-name}${var.environment}db", "-", "")
   master_username            = replace("${var.app-name}${var.environment}dbadmin", "-", "")
   master_password_wo         = local.db_raw_password
