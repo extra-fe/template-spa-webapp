@@ -186,11 +186,12 @@ resource "aws_iam_role_policy" "execute_ecs_task" {
         {
           Effect = "Allow",
           Action = [
-            "ssm:GetParameter",
+            #"ssm:GetParameter",
             "ssm:GetParameters"
           ],
           Resource = aws_ssm_parameter.db_connection_string.arn
         },
+        /*
         {
           Effect = "Allow",
           Action = [
@@ -198,6 +199,7 @@ resource "aws_iam_role_policy" "execute_ecs_task" {
           ],
           Resource = "arn:aws:kms:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:key/*"
         },
+        */
       ]
       Version = "2012-10-17"
     }
@@ -216,7 +218,7 @@ resource "aws_ecs_service" "service" {
   deployment_minimum_healthy_percent = 100
   desired_count                      = 1
   enable_ecs_managed_tags            = true
-  enable_execute_command             = false
+  enable_execute_command             = true
   health_check_grace_period_seconds  = 0
   launch_type                        = "FARGATE"
   name                               = "${var.app-name}-${var.environment}-service"
