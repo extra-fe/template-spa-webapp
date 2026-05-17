@@ -1,0 +1,14 @@
+# ===== Claude Code =====
+# 個人/一時ファイルのみ無視。チーム共有設定 (.claude/settings.json, CLAUDE.md,
+# agents/, commands/, hooks/) は明示的に commit する。
+.claude/worktrees/
+.claude/settings.local.json
+.claude/projects/
+
+# ===== OS / エディタ =====
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
