@@ -116,6 +116,10 @@ resource "aws_athena_workgroup" "waf_logs" {
   force_destroy = true
 
   configuration {
+    # us-east-1 のバケットをクロスリージョンクエリするために v3 必須
+    engine_version {
+      selected_engine_version = "Athena engine version 3"
+    }
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/results/"
     }

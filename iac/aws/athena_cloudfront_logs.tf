@@ -236,6 +236,9 @@ resource "aws_athena_workgroup" "cloudfront_logs" {
   force_destroy = true
 
   configuration {
+    engine_version {
+      selected_engine_version = "Athena engine version 3"
+    }
     result_configuration {
       output_location = "s3://${aws_s3_bucket.athena_results.bucket}/results/"
     }
