@@ -3,6 +3,15 @@ provider "aws" {
   region = "ap-northeast-1"
 }
 
+# CloudFront標準ログ(v2 CloudWatch Logs Delivery)用のus-east-1プロバイダ
+# CloudFrontはグローバルサービスで、APIエンドポイントが us-east-1 に固定されている。
+# aws_cloudwatch_log_delivery_source/destination/delivery 三点セットは CloudFront と同じリージョン(us-east-1)に配置する必要がある。
+# (配信先S3バケット自体は ap-northeast-1 のままで問題ない)
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 # Auth0プロバイダ: テナント情報を環境変数(terraform.tfvars)から注入
 provider "auth0" {
   domain        = var.auth0_domain

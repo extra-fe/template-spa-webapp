@@ -27,6 +27,8 @@ resource "aws_cloudfront_distribution" "cdn" {
   is_ipv6_enabled = true
   price_class     = "PriceClass_100"
   tags            = {}
+  # AWS WAF v2 (CLOUDFRONT scope, us-east-1) をアタッチ。詳細は waf.tf
+  web_acl_id = aws_wafv2_web_acl.cloudfront.arn
 
   default_cache_behavior {
     allowed_methods = [
