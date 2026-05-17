@@ -110,6 +110,45 @@ LOCATION 's3://<バケット名>/AWSLogs/<AWSアカウントID>/elasticloadbalan
 
 ---
 
+## FireLens カスタムイメージのビルド＆デプロイ
+
+ECSのログルーター（Fluent Bit）はカスタムイメージを使用しています。
+`iac/aws/fluent-bit/` 配下のファイル（`extra.conf` / `remove_ansi.lua` / `Dockerfile`）を変更した場合は、イメージの再ビルドとECSサービスの再起動が必要です。
+
+### ビルド＆ECRプッシュ
+
+`iac/aws/fluent-bit/` ディレクトリで実行してください。
+
+```powershell
+$ACCOUNT_ID = (aws sts get-caller-identity | ConvertFrom-Json).Account
+$REGION = "ap-northeast-1"
+$REPO = "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com/dev/fluent-bit"
+
+aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$REGION.amazonaws.com"
+docker build -t dev/fluent-bit .
+docker tag dev/fluent-bit:latest "${REPO}:latest"
+docker push "${REPO}:latest"
+```
+
+### ECSサービスの再起動（新イメージを反映）
+
+```powershell
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --force-new-deployment
+```
+
+### 設定変更時の対応フロー
+
+| 変更内容 | 必要な作業 |
+|---|---|
+| `extra.conf` / `remove_ansi.lua` の変更 | ビルド＆プッシュ → ECSサービス再起動 |
+| `Dockerfile` のベースイメージ変更 | ビルド＆プッシュ → ECSサービス再起動 |
+| ECSタスク定義（環境変数等）の変更 | `terraform apply` → ECSサービス再起動 |
+
+---
+
 ## ECS - タスク強制再デプロイ
 
 SSMパラメータストアの値を変更した場合（DATABASE_URL等）、実行中のタスクには自動反映されません。
