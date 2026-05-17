@@ -87,11 +87,14 @@ resource "aws_cloudwatch_log_delivery_source" "cloudfront" {
   resource_arn = aws_cloudfront_distribution.cdn.arn
 }
 
-# S3を配信先として登録 (parquetフォーマット: Athenaでの効率的なクエリ用)
+# S3を配信先として登録
+# json フォーマット: CloudFront フィールド名 (cs-method, cs(Host) 等) をそのまま JSON キーとして出力。
+# Athena 側で JsonSerDe の mapping パラメータでハイフン/括弧を含むキーを安全な列名へ変換する。
+# (parquet は列名に特殊文字を含むため Glue API での定義が困難なため json を採用)
 resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
   provider      = aws.us_east_1
   name          = "${var.app-name}-${var.environment}-cf-access-dest"
-  output_format = "parquet"
+  output_format = "json"
 
   delivery_destination_configuration {
     destination_resource_arn = aws_s3_bucket.cloudfront_logs.arn
@@ -100,21 +103,19 @@ resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
 
 # 配信元と配信先を紐付け
 # suffix_path で年月日時パーティションをS3キーに含める (Athena partition projection 用)
+#
+# CW Logs Delivery は自動プレフィックスを付与しない。suffix_path がそのまま S3 キーになる。
+# suffix_path = "{dist-id}/{yyyy}/{MM}/{dd}/{HH}" → 実際のS3キー: {dist-id}/{yyyy}/{MM}/{dd}/{HH}/filename.gz
 resource "aws_cloudwatch_log_delivery" "cloudfront" {
   provider                 = aws.us_east_1
   delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront.name
   delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront.arn
 
   s3_delivery_configuration {
-    suffix_path                 = "AWSLogs/${data.aws_caller_identity.self.account_id}/CloudFront/${aws_cloudfront_distribution.cdn.id}/{yyyy}/{MM}/{dd}/{HH}"
+    suffix_path                 = "${aws_cloudfront_distribution.cdn.id}/{yyyy}/{MM}/{dd}/{HH}"
     enable_hive_compatible_path = false
   }
 
   depends_on = [aws_s3_bucket_policy.cloudfront_logs]
 }
 
-# NOTE: AthenaクエリのためのGlueカタログテーブルは別途追加可能。
-# v2 logging (parquet) は CloudFront 標準ログのフィールド名 (cs-method, cs(Host) 等) を
-# そのままparquetカラム名として使うため、Athenaクエリ時にバッククォートでのエスケープが必要。
-# 初期配信後に実際のparquetスキーマをglue crawlerで確認し、
-# 必要に応じてATHena DDL (`athena_cloudfront_logs.tf`) を後追いで作成する想定。
