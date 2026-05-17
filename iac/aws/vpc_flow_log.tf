@@ -24,6 +24,22 @@ resource "aws_s3_bucket_versioning" "vpc_flow_log" {
   }
 }
 
+# 30日でログを自動削除(ALBアクセスログと保存期間を揃える)
+resource "aws_s3_bucket_lifecycle_configuration" "vpc_flow_log" {
+  bucket = aws_s3_bucket.vpc_flow_log.bucket
+
+  rule {
+    id     = "expire-old-logs"
+    status = "Enabled"
+
+    filter {}
+
+    expiration {
+      days = 30
+    }
+  }
+}
+
 # バケットポリシー: VPC Flow Logs配信サービス(delivery.logs.amazonaws.com)からの書き込みのみ許可
 # Confused Deputy対策として aws:SourceAccount / aws:SourceArn で自アカウント・自リージョンに限定
 resource "aws_s3_bucket_policy" "vpc_flow_log" {
