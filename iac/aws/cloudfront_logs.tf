@@ -103,13 +103,19 @@ resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
 
 # 配信元と配信先を紐付け
 # suffix_path で年月日時パーティションをS3キーに含める (Athena partition projection 用)
+#
+# CW Logs Delivery は自動で "AWSLogs/{account}/CloudFront/" プレフィックスを付与するため、
+# suffix_path には DistributionId/{yyyy}/{MM}/{dd}/{HH} のみ指定する。
+# (プレフィックスを重複して書くと二重パスになる)
+#
+# 実際のS3キー: AWSLogs/{account}/CloudFront/{dist-id}/{yyyy}/{MM}/{dd}/{HH}/filename.gz
 resource "aws_cloudwatch_log_delivery" "cloudfront" {
   provider                 = aws.us_east_1
   delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront.name
   delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront.arn
 
   s3_delivery_configuration {
-    suffix_path                 = "AWSLogs/${data.aws_caller_identity.self.account_id}/CloudFront/${aws_cloudfront_distribution.cdn.id}/{yyyy}/{MM}/{dd}/{HH}"
+    suffix_path                 = "${aws_cloudfront_distribution.cdn.id}/{yyyy}/{MM}/{dd}/{HH}"
     enable_hive_compatible_path = false
   }
 
