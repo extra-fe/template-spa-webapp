@@ -30,7 +30,7 @@ AWS と Azure の両クラウドに同一アプリケーションをデプロイ
 ユーザー
   │
   ▼
-CloudFront / Front Door (CDN)
+CloudFront (+ WAF v2) / Front Door (CDN)
   │
   ├── /* ──────────> S3 / Storage Account (Frontend - React SPA)
   │
@@ -69,8 +69,12 @@ CloudFront / Front Door (CDN)
 | `athena_alb_logs.tf` | ALBアクセスログ用 Glue テーブル・Athena ワークグループ |
 | `athena_vpc_flow_logs.tf` | VPCフローログ用 Glue テーブル・Athena ワークグループ |
 | `athena_ecs_logs.tf` | ECSコンテナログ用 Glue テーブル・Athena ワークグループ |
+| `cloudfront_logs.tf` | CloudFrontアクセスログ用S3バケット・v2 CW Logs Delivery設定 |
+| `waf.tf` | AWS WAF v2 WebACL (CloudFront scope) + WAFログ用S3バケット |
+| `cloudwatch_alarms.tf` | CloudWatch アラーム (ECS/Aurora) + SNS トピック |
+| `athena_cloudfront_logs.tf` | CloudFrontアクセスログ用 Glue テーブル・Athena ワークグループ |
+| `athena_waf_logs.tf` | WAFログ用 Glue テーブル・Athena ワークグループ |
 | `start-stop-resources.tf` | 自動起動・停止（EventBridge Scheduler + Step Functions） |
-| `imports.tf` | 既存リソースの Terraform インポート定義 |
 
 ### 3.2 ネットワーク
 
@@ -196,7 +200,58 @@ Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup V
 | DB SG | Aurora | ECS → DB (ポート5432) |
 | Bastion SG | 踏み台 | 指定IP → Bastion |
 
-### 3.8 CI/CD (CodePipeline)
+### 3.8 WAF (AWS WAF v2)
+
+CloudFront に紐付けた WAF WebACL でマネージドルールによる自動防御を行う。
+
+| 項目 | 値 |
+|---|---|
+| スコープ | CLOUDFRONT（グローバル、us-east-1 API で管理） |
+| デフォルトアクション | ALLOW |
+| ルールグループ | AWSManagedRulesCommonRuleSet (priority 10) |
+| ルールグループ | AWSManagedRulesKnownBadInputsRuleSet (priority 20) |
+| ルールグループ | AWSManagedRulesAmazonIpReputationList (priority 30) |
+| サンプルリクエスト | 有効（全ルール） |
+
+**WAFログ:**
+
+- S3バケット（us-east-1）: `aws-waf-logs-{app-name}-{environment}-{suffix}` （バケット名プレフィックス必須）
+- 形式: NDJSON / gzip圧縮
+- Athena テーブル: `{app_name}_{environment}_waf_logs.waf_logs`（ap-northeast-1 ワークグループから Athena v3 クロスリージョンクエリで参照可）
+
+### 3.9 CloudFrontアクセスログ
+
+CloudWatch Logs Delivery v2 (aws_cloudwatch_log_delivery_*) でS3に配信する。
+
+| 項目 | 値 |
+|---|---|
+| 配信方式 | v2 CW Logs Delivery（バケットポリシーのみ、ACL不要） |
+| 形式 | JSON（CloudFrontフィールド名をそのままJSONキーとして出力） |
+| S3バケット | ap-northeast-1（`{app-name}-{environment}-cf-logs-{suffix}`） |
+| パス | `AWSLogs/{account}/CloudFront/{dist-id}/{yyyy}/{MM}/{dd}/{HH}/` |
+| Athena テーブル | `{app_name}_{environment}_cloudfront_logs.cloudfront_access_logs` |
+
+> レガシー方式（`logging_config`）は `block_public_acls = true` と競合するため採用しない。
+
+### 3.10 監視アラーム (CloudWatch Alarms)
+
+ECS・Aurora の主要メトリクスを監視し、SNS トピックへ通知する。
+
+| アラーム | メトリクス | 閾値 |
+|---|---|---|
+| `ecs-cpu-high` | ECS CPUUtilization | > 80% |
+| `ecs-memory-high` | ECS MemoryUtilization | > 80% |
+| `aurora-connections-high` | DatabaseConnections (Maximum) | > 70 |
+| `aurora-cpu-high` | CPUUtilization | > 80% |
+| `aurora-acu-high` | ACUUtilization | > 80% |
+| `aurora-freeable-memory-low` | FreeableMemory | < 200 MiB |
+| `aurora-free-local-storage-low` | FreeLocalStorage (Minimum) | < 512 MiB |
+| `aurora-volume-bytes-high` | VolumeBytesUsed | > 100 GiB |
+
+- 全アラーム: `evaluation_periods = 2`, `treat_missing_data = "notBreaching"`
+- SNS トピック: `{app-name}-{environment}-alarms`（サブスクリプションは Terraform 管理外・手動登録）
+
+### 3.11 CI/CD (CodePipeline)
 
 **バックエンドパイプライン:**
 
@@ -225,7 +280,7 @@ Build (CodeBuild)
   │ CloudFrontキャッシュ無効化 (/*)
 ```
 
-### 3.9 Auth0
+### 3.12 Auth0
 
 | リソース | 設定 |
 |---|---|
@@ -390,6 +445,7 @@ Front Door キャッシュパージ
 | 機能 | AWS | Azure |
 |---|---|---|
 | CDN | CloudFront | Front Door Standard |
+| WAF | AWS WAF v2 (CloudFront scope) | — |
 | フロントエンドホスティング | S3 | Storage Account (静的Web) |
 | バックエンド実行環境 | ECS Fargate | App Service (Linux) |
 | コンテナレジストリ | ECR | ACR |
@@ -398,9 +454,12 @@ Front Door キャッシュパージ
 | シークレット管理 | SSM Parameter Store | Key Vault |
 | ネットワーク | VPC | VNet |
 | 踏み台 | EC2 Bastion | Azure Bastion |
+| CloudFrontアクセスログ | S3 (v2 CW Logs Delivery) | — |
+| WAFログ | S3 (direct logging) | — |
+| 監視アラーム | CloudWatch Alarms + SNS | — |
 | CI/CD | CodePipeline + CodeBuild | GitHub Actions |
 | 認証基盤 | Auth0 (Terraform管理) | Auth0 (Terraform管理) |
-| 監視 | CloudWatch Logs | Log Analytics Workspace |
+| 監視ログ | CloudWatch Logs | Log Analytics Workspace |
 | CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド) |
 
 ## 6. Terraform 変数
