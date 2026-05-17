@@ -200,7 +200,15 @@ GROUP BY request_url
 ORDER BY avg_sec DESC LIMIT 10;
 ```
 
-> クエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
+**S3保管ポリシー（VPCフローログ・ALBアクセスログ共通）**
+
+| 期間 | ストレージクラス | Athenaクエリ |
+|---|---|---|
+| 0〜30日 | Standard | 可 |
+| 31〜365日 | Standard-IA | 可（コスト約60%減） |
+| 365日以降 | Glacier | 不可（保管のみ） |
+
+> Athenaクエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
 
 ## ドキュメント
 
