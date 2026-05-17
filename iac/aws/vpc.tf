@@ -49,6 +49,12 @@ resource "aws_nat_gateway" "nat" {
   tags = {
     "Name" = "${var.app-name}-${var.environment}-nat-regional"
   }
+  # AWS公式上、Regional NAT GatewayはAZ拡張に最大60分かかる仕様。
+  # provider既定の10分では createタイムアウトしやすいため明示的に延長。
+  timeouts {
+    create = "60m"
+    delete = "30m"
+  }
 }
 
 # プライベート用ルートテーブル(Regional NAT Gateway向け)
