@@ -126,10 +126,4 @@ resource "aws_athena_workgroup" "alb_logs" {
   }
 }
 
-# AthenaデータベースDB
-resource "aws_athena_database" "alb_logs" {
-  name   = "${replace(var.app-name, "-", "_")}_${var.environment}_alb_logs"
-  bucket = aws_s3_bucket.athena_results.bucket
-}
-
 
