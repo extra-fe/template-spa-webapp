@@ -233,6 +233,8 @@ GROUP BY cs_uri_stem
 ORDER BY avg_sec DESC LIMIT 10;
 ```
 
+> `hour` はパーティションキーが string 型のため文字列で指定します（例: `AND hour = '13'`）。
+
 #### WAFログ
 
 CloudFront WAF v2 の判定結果（ALLOW / BLOCK / COUNT）をS3へ記録しています。
