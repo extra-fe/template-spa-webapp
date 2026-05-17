@@ -8,7 +8,8 @@ resource "aws_glue_catalog_database" "waf_logs" {
 # - WAFバケットは us-east-1 にあるが、Athena Query Engine v3 のクロスリージョンS3クエリで
 #   ap-northeast-1 のワークグループからそのままクエリ可能 (追加リージョン設定不要)
 #
-# S3パス: s3://<bucket>/AWSLogs/<account>/WAFLogs/us-east-1/<acl-name>/<yyyy>/<MM>/<dd>/<HH>/<mm>/
+# S3パス: s3://<bucket>/AWSLogs/<account>/WAFLogs/cloudfront/<acl-name>/<yyyy>/<MM>/<dd>/<HH>/<mm>/
+# CloudFront scope の WAF はリージョン部分が "cloudfront" になる (us-east-1 ではない)
 # partition projection は day(yyyy/MM/dd) 単位とし、HH/mm サブディレクトリは Athena が再帰スキャン
 resource "aws_glue_catalog_table" "waf_logs" {
   name          = "waf_logs"
@@ -23,7 +24,7 @@ resource "aws_glue_catalog_table" "waf_logs" {
     "projection.day.format"        = "yyyy/MM/dd"
     "projection.day.interval"      = "1"
     "projection.day.interval.unit" = "DAYS"
-    "storage.location.template"    = "s3://${aws_s3_bucket.waf_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/WAFLogs/us-east-1/${aws_wafv2_web_acl.cloudfront.name}/$${day}/"
+    "storage.location.template"    = "s3://${aws_s3_bucket.waf_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/WAFLogs/cloudfront/${aws_wafv2_web_acl.cloudfront.name}/$${day}/"
     "classification"               = "json"
   }
 
@@ -33,7 +34,7 @@ resource "aws_glue_catalog_table" "waf_logs" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.waf_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/WAFLogs/us-east-1/${aws_wafv2_web_acl.cloudfront.name}/"
+    location      = "s3://${aws_s3_bucket.waf_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/WAFLogs/cloudfront/${aws_wafv2_web_acl.cloudfront.name}/"
     input_format  = "org.apache.hadoop.mapred.TextInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
     compressed    = true # WAFログは gzip 圧縮で配信される
