@@ -25,7 +25,7 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
     "projection.hour.type"         = "integer"
     "projection.hour.range"        = "0,23"
     "projection.hour.digits"       = "2"
-    "storage.location.template"    = "s3://${aws_s3_bucket.cloudfront_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/CloudFront/${aws_cloudfront_distribution.cdn.id}/$${day}/$${hour}/"
+    "storage.location.template"    = "s3://${aws_s3_bucket.cloudfront_logs.bucket}/${aws_cloudfront_distribution.cdn.id}/$${day}/$${hour}/"
     "classification"               = "json"
   }
 
@@ -39,7 +39,7 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.cloudfront_logs.bucket}/AWSLogs/${data.aws_caller_identity.self.account_id}/CloudFront/${aws_cloudfront_distribution.cdn.id}/"
+    location      = "s3://${aws_s3_bucket.cloudfront_logs.bucket}/${aws_cloudfront_distribution.cdn.id}/"
     input_format  = "org.apache.hadoop.mapred.TextInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
     compressed    = false
