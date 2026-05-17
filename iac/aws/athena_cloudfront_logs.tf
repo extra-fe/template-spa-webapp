@@ -51,8 +51,6 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
       parameters = {
         "ignore.malformed.json"             = "true"
         "use.null.for.invalid.data"         = "true"
-        "mapping.log_timestamp"             = "timestamp"
-        "mapping.distribution_id"           = "DistributionId"
         "mapping.edge_location"             = "x-edge-location"
         "mapping.sc_bytes"                  = "sc-bytes"
         "mapping.c_ip"                      = "c-ip"
@@ -87,15 +85,7 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
       }
     }
 
-    # CloudFront 標準ログ全フィールド (v2) / JSON キーとの対応は上記 mapping パラメータを参照
-    columns {
-      name = "log_timestamp"
-      type = "bigint"
-    }
-    columns {
-      name = "distribution_id"
-      type = "string"
-    }
+    # CloudFront 標準ログ全フィールド / JSON キーとの対応は上記 mapping パラメータを参照
     columns {
       name = "date"
       type = "string"
