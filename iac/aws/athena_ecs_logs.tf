@@ -19,7 +19,7 @@ resource "aws_glue_catalog_table" "ecs_logs" {
     "projection.date.range"         = "NOW-1YEARS,NOW"
     "projection.date.interval"      = "1"
     "projection.date.interval.unit" = "DAYS"
-    "storage.location.template"     = "s3://${aws_s3_bucket.ecs_logs.bucket}//ecs-logs/$${date}/"
+    "storage.location.template"     = "s3://${aws_s3_bucket.ecs_logs.bucket}/ecs-logs/$${date}/"
     "classification"                = "json"
   }
 
@@ -29,7 +29,7 @@ resource "aws_glue_catalog_table" "ecs_logs" {
   }
 
   storage_descriptor {
-    location      = "s3://${aws_s3_bucket.ecs_logs.bucket}//ecs-logs/"
+    location      = "s3://${aws_s3_bucket.ecs_logs.bucket}/ecs-logs/"
     input_format  = "org.apache.hadoop.mapred.TextInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
     compressed    = true
