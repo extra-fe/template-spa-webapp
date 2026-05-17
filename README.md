@@ -63,6 +63,7 @@ User ── HTTPS ──> CloudFront / Front Door (CDN)
 | バックエンド | ECS Fargate | App Service (Linux B1) |
 | コンテナレジストリ | ECR | ACR |
 | データベース | Aurora Serverless v2 (PostgreSQL 16) | PostgreSQL Flexible Server (v16) |
+| DB長期バックアップ | AWS Backup (日次・30日保持) | PostgreSQL Flexible Server組込み (7日保持) |
 | シークレット管理 | SSM Parameter Store | Key Vault |
 | ネットワーク | VPC (172.16.0.0/16) | VNet (10.0.0.0/24) |
 | VPCフローログ | S3 + `aws_flow_log` | — |
@@ -210,6 +211,21 @@ ORDER BY avg_sec DESC LIMIT 10;
 | 365日以降 | Glacier | 不可（保管のみ） |
 
 > Athenaクエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
+
+### Auroraバックアップ (AWS Backup)
+
+Aurora Serverless v2の自動バックアップ（最大35日）とは別系統で、AWS Backupによる長期バックアップを設定しています。
+
+| 項目 | 値 |
+|---|---|
+| Backup Vault | `{app-name}-{environment}-aurora-vault`（専用Vault・`aws/backup` KMSキー） |
+| スケジュール | 日次 02:00 JST |
+| 保持期間 | 30日 |
+| クロスリージョンコピー | 無効 |
+
+> auto-stop (13:00 JST) によりバックアップ実行時刻にはAuroraが停止していますが、停止中クラスタもスナップショット取得は可能です。
+
+バックアップ一覧・復元手順は [運用・調査コマンド](./docs/operations.md#aurora-aws-backup) を参照してください。
 
 ### 自動起動・停止 (AWS)
 
