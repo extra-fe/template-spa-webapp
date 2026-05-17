@@ -126,6 +126,29 @@ aws ecs update-service `
 
 ---
 
+## ECS - ECS Execの有効・無効切り替え
+
+ECS Execは `ecs.tf` の `enable_execute_command = true` で有効化されています。
+コンテナへのシェル接続が可能になるため、調査・デバッグが不要な場合は無効化してください。
+
+```powershell
+# 無効化
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --enable-execute-command false
+
+# 有効化
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --enable-execute-command true
+```
+
+> CLIでの変更は一時的な対処です。恒久的に変更する場合は `ecs.tf` の `enable_execute_command` を変更して `terraform apply` してください。
+
+---
+
 ## ECS - VPCエンドポイント経由の通信確認
 
 VPCエンドポイント（Interface）が有効な場合、エンドポイントのDNS名がVPC内のプライベートIPに解決されます。

@@ -233,7 +233,7 @@ resource "aws_ecs_service" "service" {
   deployment_minimum_healthy_percent = 100
   desired_count                      = 1
   enable_ecs_managed_tags            = true
-  enable_execute_command             = true
+  enable_execute_command             = true  # ECS Execを有効化(調査・デバッグ用)。不要な場合はfalseに変更してapplyすること
   health_check_grace_period_seconds  = 0
   launch_type                        = "FARGATE"
   name                               = "${var.app-name}-${var.environment}-service"
