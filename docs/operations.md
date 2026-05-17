@@ -110,6 +110,22 @@ LOCATION 's3://<バケット名>/AWSLogs/<AWSアカウントID>/elasticloadbalan
 
 ---
 
+## ECS - タスク強制再デプロイ
+
+SSMパラメータストアの値を変更した場合（DATABASE_URL等）、実行中のタスクには自動反映されません。
+以下のコマンドで新しいタスクを起動し、最新のパラメータ値を反映させてください。
+
+```powershell
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --force-new-deployment
+```
+
+> SSMパラメータの値はタスク起動時にのみ取得されるため、`terraform apply` 後は必ずタスクの再デプロイが必要です。
+
+---
+
 ## ECS - ターゲットグループのヘルスチェック確認
 
 ```powershell

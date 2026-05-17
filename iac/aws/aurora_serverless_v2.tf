@@ -15,6 +15,7 @@ resource "random_string" "db_password" {
 }
 
 # DB接続文字列(DATABASE_URL)を組み立て: SSMパラメータに保存しECSタスクへ注入する
+# connection_limit / pool_timeout は variables.tf で管理 (設定指針は README.md 参照)
 locals {
   db_raw_password     = random_string.db_password.result
   db_encoded_password = urlencode(local.db_raw_password)
@@ -31,7 +32,9 @@ locals {
       "/",
       "${aws_rds_cluster.cluster.database_name}",
       "?",
-      "sslmode=require"
+      "sslmode=require",
+      "&connection_limit=${var.db-connection-limit}",
+      "&pool_timeout=${var.db-pool-timeout}"
     ]
   )
 }
@@ -77,5 +80,5 @@ resource "aws_ssm_parameter" "db_connection_string" {
   tier             = "Standard"
   type             = "SecureString"
   value_wo         = local.database_url
-  value_wo_version = 1
+  value_wo_version = 2
 }

@@ -121,6 +121,7 @@ CloudFront / Front Door (CDN)
 | ストレージ暗号化 | 有効 |
 | アクセス | プライベートサブネットのみ |
 | 接続文字列保管 | SSM Parameter Store (SecureString) |
+| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） |
 
 ### 3.6 ロードバランサー (ALB)
 
@@ -365,6 +366,8 @@ Front Door キャッシュパージ
 | `health-check-path` | `/health` | ヘルスチェックパス |
 | `api-expose-port` | `3000` | コンテナ公開ポート |
 | `local-pc-ip-addresses` | `[]` | 接続元IPアドレス（Bastion用） |
+| `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は README 参照） |
+| `db-pool-timeout` | `15` | Prismaコネクション空き待ちタイムアウト（秒） |
 
 ### 6.2 AWS固有変数
 
