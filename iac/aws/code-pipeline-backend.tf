@@ -253,7 +253,7 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
           Resource = [
             aws_ecs_cluster.cluster.arn,
             local.ecs_service_arn,
-            aws_ecs_task_definition.task_definition.arn,
+            "${aws_ecs_task_definition.task_definition.arn_without_revision}:*",
           ]
         },
         {
