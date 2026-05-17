@@ -28,8 +28,11 @@ terraform {
       version = ">= 6.24.0"
     }
     auth0 = {
-      source  = "auth0/auth0"
-      version = ">= 1.0.0"
+      source = "auth0/auth0"
+      # 1.34.0以降は auth0_client の oidc_logout ブロックのスキーマ厳密化により
+      # 既存テナントの設定が drift として削除対象になるため、当面 1.33.0 にpin。
+      # provider更新は別途検証PRで実施すること。
+      version = "1.33.0"
     }
   }
 }
