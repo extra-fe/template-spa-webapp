@@ -24,18 +24,27 @@ resource "aws_s3_bucket_versioning" "vpc_flow_log" {
   }
 }
 
-# 30日でログを自動削除(ALBアクセスログと保存期間を揃える)
+# ログの保管コスト最適化
+# 0〜30日   : Standard    (頻繁にAthenaで参照)
+# 31〜365日 : Standard-IA (参照頻度低・Athenaクエリは引き続き可能)
+# 365日以降 : Glacier     (参照なし・保管のみ・Athenaクエリ不可)
 resource "aws_s3_bucket_lifecycle_configuration" "vpc_flow_log" {
   bucket = aws_s3_bucket.vpc_flow_log.bucket
 
   rule {
-    id     = "expire-old-logs"
+    id     = "tiering"
     status = "Enabled"
 
     filter {}
 
-    expiration {
-      days = 30
+    transition {
+      days          = 31
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 365
+      storage_class = "GLACIER"
     }
   }
 }
