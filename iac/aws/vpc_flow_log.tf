@@ -24,6 +24,31 @@ resource "aws_s3_bucket_versioning" "vpc_flow_log" {
   }
 }
 
+# ログの保管コスト最適化
+# 0〜30日   : Standard    (頻繁にAthenaで参照)
+# 31〜365日 : Standard-IA (参照頻度低・Athenaクエリは引き続き可能)
+# 365日以降 : Glacier     (参照なし・保管のみ・Athenaクエリ不可)
+resource "aws_s3_bucket_lifecycle_configuration" "vpc_flow_log" {
+  bucket = aws_s3_bucket.vpc_flow_log.bucket
+
+  rule {
+    id     = "tiering"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 31
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 365
+      storage_class = "GLACIER"
+    }
+  }
+}
+
 # バケットポリシー: VPC Flow Logs配信サービス(delivery.logs.amazonaws.com)からの書き込みのみ許可
 # Confused Deputy対策として aws:SourceAccount / aws:SourceArn で自アカウント・自リージョンに限定
 resource "aws_s3_bucket_policy" "vpc_flow_log" {
