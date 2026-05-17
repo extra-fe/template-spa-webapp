@@ -52,11 +52,13 @@ CloudFront / Front Door (CDN)
 | `variables.tf` | 入力変数定義 |
 | `vpc.tf` | VPC, サブネット, ルートテーブル, NAT Gateway |
 | `vpc_endpoint.tf` | VPCエンドポイント（プライベートアクセス） |
+| `vpc_flow_log.tf` | VPCフローログ（S3出力） |
 | `security-group.tf` | セキュリティグループ |
 | `s3.tf` | フロントエンド用S3バケット |
 | `cloudfront.tf` | CloudFrontディストリビューション |
-| `ecr.tf` | Elastic Container Registry |
-| `ecs.tf` | ECS Fargate クラスター・サービス・タスク |
+| `ecr.tf` | バックエンド用 Elastic Container Registry |
+| `ecs.tf` | ECS Fargate クラスター・サービス・タスク定義 |
+| `ecs_logs.tf` | ECSログ用S3バケット・Fluent Bit用ECRリポジトリ・IAMポリシー |
 | `alb.tf` | Application Load Balancer |
 | `aurora_serverless_v2.tf` | Aurora Serverless v2 (PostgreSQL) |
 | `aws_backup.tf` | AWS Backup (Auroraクラスタの長期バックアップ) |
@@ -64,6 +66,11 @@ CloudFront / Front Door (CDN)
 | `auth0.tf` | Auth0 SPAクライアント・リソースサーバー |
 | `code-pipeline-backend.tf` | バックエンドCI/CD (CodePipeline) |
 | `code-pipeline-frontend.tf` | フロントエンドCI/CD (CodePipeline) |
+| `athena_alb_logs.tf` | ALBアクセスログ用 Glue テーブル・Athena ワークグループ |
+| `athena_vpc_flow_logs.tf` | VPCフローログ用 Glue テーブル・Athena ワークグループ |
+| `athena_ecs_logs.tf` | ECSコンテナログ用 Glue テーブル・Athena ワークグループ |
+| `start-stop-resources.tf` | 自動起動・停止（EventBridge Scheduler + Step Functions） |
+| `imports.tf` | 既存リソースの Terraform インポート定義 |
 
 ### 3.2 ネットワーク
 
@@ -125,11 +132,20 @@ CloudFront / Front Door (CDN)
 | タスクメモリ | 512 MB |
 | コンテナポート | 3000 |
 | コンテナイメージ | ECRから取得 |
-| ログ | CloudWatch Logs（保持期間: 7日） |
+| ログ | FireLens (Fluent Bit) 経由で CloudWatch Logs（7日）と S3 に同時出力 |
 
 **ECR (Elastic Container Registry):**
-- バックエンドDockerイメージを格納
-- ライフサイクルポリシー設定可能
+- バックエンドDockerイメージ（`dev/sandbox-aws-backend`）
+- Fluent Bit カスタムイメージ（`dev/fluent-bit`）— `iac/aws/fluent-bit/` でビルド・管理
+
+**FireLens (Fluent Bit) ログルーティング:**
+
+| 出力先 | 内容 | 保持 |
+|---|---|---|
+| CloudWatch Logs | テキスト形式（ヘルスチェック除外、ANSIカラー除去） | 7日 |
+| S3 | JSON形式（Athenaクエリ用） | ライフサイクルポリシーで階層管理 |
+
+> Fluent Bit 設定ファイル（`extra.conf`）の変更時はカスタムイメージの再ビルドが必要。手順は [運用コマンドリファレンス](../docs/operations.md) を参照。
 
 ### 3.5 データベース (Aurora Serverless v2)
 
