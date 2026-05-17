@@ -68,6 +68,7 @@ User ── HTTPS ──> CloudFront / Front Door (CDN)
 | VPCフローログ | S3 + `aws_flow_log` | — |
 | ALBアクセスログ | S3 | — |
 | ログ分析 | Athena + Glue Data Catalog（partition projection） | — |
+| 自動起動・停止 | EventBridge Scheduler + Step Functions | — |
 | CI/CD | CodePipeline (自動トリガー) | GitHub Actions (手動トリガー) |
 
 ## セットアップ
@@ -201,6 +202,26 @@ ORDER BY avg_sec DESC LIMIT 10;
 ```
 
 > クエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
+
+### 自動起動・停止 (AWS)
+
+開発コスト削減のため、EventBridge Scheduler + Step Functions でリソースを自動制御しています。
+
+| スケジュール | 時刻（JST） | 対象 | デフォルト |
+|---|---|---|---|
+| Auto-stop | 毎日 13:00 | ECS（タスク数→0）→ Aurora 停止 → Bastion 停止 | **有効** |
+| Auto-start | 土日 5:00 | Bastion 起動 → Aurora 起動（12分待機）→ ECS（タスク数→1） | 無効 |
+
+> Auto-start はデフォルト無効です。平日も自動起動したい場合は AWS コンソール（EventBridge Scheduler）またはTerraformの `state` を `"ENABLED"` に変更してください。
+
+**手動で起動・停止する場合**
+
+Step Functions コンソールから対象のステートマシンを選択し「実行を開始」してください。
+
+| ステートマシン名 | 操作 |
+|---|---|
+| `exec-auto-stop-{app-name}-{environment}` | 停止 |
+| `exec-auto-start-{app-name}-{environment}` | 起動 |
 
 ## ドキュメント
 
