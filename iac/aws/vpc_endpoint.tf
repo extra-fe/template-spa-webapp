@@ -175,7 +175,6 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.vpc.id
   route_table_ids = [
     aws_route_table.main.id,
-    aws_route_table.custom.id,
   ]
   tags = {
     "Name" = "${var.environment}-s3",

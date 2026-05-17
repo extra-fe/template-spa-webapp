@@ -24,7 +24,8 @@ terraform {
   required_version = ">= 1.13.5"
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
+      version = ">= 6.24.0"
     }
     auth0 = {
       source  = "auth0/auth0"
