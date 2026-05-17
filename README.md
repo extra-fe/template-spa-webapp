@@ -202,6 +202,31 @@ ORDER BY avg_sec DESC LIMIT 10;
 
 > クエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
 
+#### ECSコンテナログ
+
+ECSアプリコンテナのログ（FireLens / Fluent Bit 経由）をS3へ記録し、Athenaでクエリできます。ヘルスチェックのログは除外されています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-ecs-logs` に切替える
+3. データベース `{app_name}_{environment}_ecs_logs` → テーブル `ecs_logs` を選択
+
+```sql
+-- 特定日のログを表示
+SELECT log, container_name, source
+FROM ecs_logs
+WHERE date = '2026/05/17'
+LIMIT 50;
+
+-- エラーログの抽出
+SELECT log, container_name
+FROM ecs_logs
+WHERE date = date_format(current_date, '%Y/%m/%d')
+  AND lower(log) LIKE '%error%'
+LIMIT 50;
+```
+
 ## ドキュメント
 
 | ドキュメント | 内容 |
