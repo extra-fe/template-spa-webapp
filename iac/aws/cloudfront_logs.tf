@@ -87,11 +87,14 @@ resource "aws_cloudwatch_log_delivery_source" "cloudfront" {
   resource_arn = aws_cloudfront_distribution.cdn.arn
 }
 
-# S3を配信先として登録 (parquetフォーマット: Athenaでの効率的なクエリ用)
+# S3を配信先として登録
+# json フォーマット: CloudFront フィールド名 (cs-method, cs(Host) 等) をそのまま JSON キーとして出力。
+# Athena 側で JsonSerDe の mapping パラメータでハイフン/括弧を含むキーを安全な列名へ変換する。
+# (parquet は列名に特殊文字を含むため Glue API での定義が困難なため json を採用)
 resource "aws_cloudwatch_log_delivery_destination" "cloudfront" {
   provider      = aws.us_east_1
   name          = "${var.app-name}-${var.environment}-cf-access-dest"
-  output_format = "parquet"
+  output_format = "json"
 
   delivery_destination_configuration {
     destination_resource_arn = aws_s3_bucket.cloudfront_logs.arn
@@ -113,8 +116,3 @@ resource "aws_cloudwatch_log_delivery" "cloudfront" {
   depends_on = [aws_s3_bucket_policy.cloudfront_logs]
 }
 
-# NOTE: AthenaクエリのためのGlueカタログテーブルは別途追加可能。
-# v2 logging (parquet) は CloudFront 標準ログのフィールド名 (cs-method, cs(Host) 等) を
-# そのままparquetカラム名として使うため、Athenaクエリ時にバッククォートでのエスケープが必要。
-# 初期配信後に実際のparquetスキーマをglue crawlerで確認し、
-# 必要に応じてATHena DDL (`athena_cloudfront_logs.tf`) を後追いで作成する想定。
