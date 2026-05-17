@@ -68,12 +68,19 @@ CloudFront / Front Door (CDN)
 
 **VPC構成:**
 
-| リソース | CIDR / 設定 | AZ |
-|---|---|---|
-| VPC | `172.16.0.0/16` | - |
-| パブリックサブネット | `172.16.1.0/24` | ap-northeast-1a |
-| プライベートサブネット 1 | `172.16.2.0/24` | ap-northeast-1a |
-| プライベートサブネット 2 | `172.16.3.0/24` | ap-northeast-1c |
+| リソース | 変数名 | デフォルト値 | AZ |
+|---|---|---|---|
+| VPC | `vpc_cidr_block` | `172.16.0.0/16` | - |
+| パブリックサブネット | `subnet_public1a_cidr_block` | `172.16.1.0/24` | ap-northeast-1a |
+| プライベートサブネット 1 | `subnet_private1a_cidr_block` | `172.16.2.0/24` | ap-northeast-1a |
+| プライベートサブネット 2 | `subnet_private1c_cidr_block` | `172.16.3.0/24` | ap-northeast-1c |
+
+> **⚠️ CIDRアドレスの設計について**
+> デフォルト値はそのまま使用できますが、以下のケースでは変更が必要です。
+> - 既存VPCやオンプレミスネットワークとVPCピアリング / VPN接続する場合（CIDRの重複不可）
+> - 社内ネットワークのアドレス体系に合わせる必要がある場合
+>
+> 変更する場合は `terraform.tfvars` で上書きしてください。サブネットはVPC CIDRの範囲内に収めること。
 
 **VPCエンドポイント:** NAT Gatewayを経由せずAWSサービスへプライベートアクセスするため
 
