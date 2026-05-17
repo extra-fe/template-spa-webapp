@@ -50,6 +50,7 @@ resource "aws_glue_catalog_table" "cloudfront_logs" {
       serialization_library = "org.openx.data.jsonserde.JsonSerDe"
       parameters = {
         "ignore.malformed.json"             = "true"
+        "use.null.for.invalid.data"         = "true"
         "mapping.log_timestamp"             = "timestamp"
         "mapping.distribution_id"           = "DistributionId"
         "mapping.edge_location"             = "x-edge-location"
