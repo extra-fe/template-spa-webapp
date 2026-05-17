@@ -233,7 +233,11 @@ GROUP BY cs_uri_stem
 ORDER BY avg_sec DESC LIMIT 10;
 ```
 
-> `hour` はパーティションキーが string 型のため文字列で指定します（例: `AND hour = '13'`）。
+> **パーティション指定の注意点**
+> - `day` は必ず指定してください。省略すると過去1年分（365日 × 24時間）を全スキャンします。
+> - `hour` を追加すると1時間分のみに絞れます（例: `AND hour = '13'`）。
+> - `hour` はパーティションキーが **string 型**のため、整数ではなくクォートした文字列で指定します。
+> - `sc_range_start` / `sc_range_end` はRangeリクエスト以外では常に NULL になります（正常）。
 
 #### WAFログ
 
