@@ -32,7 +32,7 @@ resource "aws_glue_catalog_table" "ecs_logs" {
     location      = "s3://${aws_s3_bucket.ecs_logs.bucket}/ecs-logs/"
     input_format  = "org.apache.hadoop.mapred.TextInputFormat"
     output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
-    compressed    = true
+    compressed    = false
 
     ser_de_info {
       serialization_library = "org.openx.data.jsonserde.JsonSerDe"
