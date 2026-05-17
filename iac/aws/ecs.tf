@@ -47,10 +47,11 @@ resource "aws_ecs_task_definition" "task_definition" {
   container_definitions = jsonencode(
     [
       {
-        cpu       = 0
-        essential = true
-        image     = "${aws_ecr_repository.backend.repository_url}:latest"
-        name      = "${var.app-name}"
+        cpu            = 0
+        essential      = true
+        image          = "${aws_ecr_repository.backend.repository_url}:latest"
+        name           = "${var.app-name}"
+        systemControls = []
         dependsOn = [
           {
             containerName = "log_router"
@@ -112,13 +113,15 @@ resource "aws_ecs_task_definition" "task_definition" {
         volumesFrom = []
       },
       {
-        name      = "log_router"
-        image     = "${aws_ecr_repository.fluent_bit.repository_url}:latest"
-        essential = true
-        cpu       = 0
-        mountPoints  = []
-        portMappings = []
-        volumesFrom  = []
+        name           = "log_router"
+        image          = "${aws_ecr_repository.fluent_bit.repository_url}:latest"
+        essential      = true
+        cpu            = 0
+        user           = "0"
+        systemControls = []
+        mountPoints    = []
+        portMappings   = []
+        volumesFrom    = []
         environment = [
           {
             name  = "HEALTH_CHECK_PATH"
