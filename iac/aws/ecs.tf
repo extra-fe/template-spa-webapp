@@ -34,7 +34,7 @@ resource "aws_ecs_cluster" "cluster" {
   tags = {}
 }
 
-# CloudWatch Logsロググループ: ECSコンテナの標準出力を集約(保持7日)
+# CloudWatch Logsロググループ: FireLens(Fluent Bit)経由でアプリログを集約(保持7日)
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/${var.app-name}-${var.environment}-log"
   retention_in_days = 7
@@ -47,27 +47,28 @@ resource "aws_ecs_task_definition" "task_definition" {
   container_definitions = jsonencode(
     [
       {
-        cpu         = 0
-        environment = []
-        essential   = true
-        image       = "${aws_ecr_repository.backend.repository_url}:latest"
-        logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            awslogs-group         = aws_cloudwatch_log_group.backend.name
-            awslogs-region        = data.aws_region.current.region
-            awslogs-stream-prefix = "ecs"
+        cpu       = 0
+        essential = true
+        image     = "${aws_ecr_repository.backend.repository_url}:latest"
+        name      = "${var.app-name}"
+        dependsOn = [
+          {
+            containerName = "log_router"
+            condition     = "START"
           }
+        ]
+        logConfiguration = {
+          logDriver = "awsfirelens"
+          options   = {}
         }
         mountPoints = []
-        name        = "${var.app-name}"
         portMappings = [
           {
             containerPort = var.api-expose-port
             hostPort      = var.api-expose-port
             protocol      = "tcp"
           },
-        ],
+        ]
         environment = [
           {
             "name"  = "PORT",
@@ -81,17 +82,14 @@ resource "aws_ecs_task_definition" "task_definition" {
             "name"  = "AUTH0_DOMAIN",
             "value" = var.auth0_domain
           },
-
           {
             "name"  = "AUTH0_AUDIENCE",
             "value" = "https://${aws_cloudfront_distribution.cdn.domain_name}"
           },
-
           {
             "name"  = "CORS_ORIGIN",
             "value" = "https://${aws_cloudfront_distribution.cdn.domain_name}"
           },
-
           {
             "name"  = "CORS_METHODS",
             "value" = "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS"
@@ -104,7 +102,7 @@ resource "aws_ecs_task_definition" "task_definition" {
             "name"  = "PRISMA_LOG_LEVEL",
             "value" = "query,info,warn,error"
           }
-        ],
+        ]
         secrets = [
           {
             name      = "DATABASE_URL"
@@ -112,6 +110,31 @@ resource "aws_ecs_task_definition" "task_definition" {
           }
         ]
         volumesFrom = []
+      },
+      {
+        name      = "log_router"
+        image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable"
+        essential = true
+        cpu       = 0
+        mountPoints  = []
+        portMappings = []
+        environment  = []
+        volumesFrom  = []
+        firelensConfiguration = {
+          type = "fluentbit"
+          options = {
+            "config-file-type"  = "s3"
+            "config-file-value" = "arn:aws:s3:::${aws_s3_bucket.fluent_bit_config.bucket}/fluent-bit.conf"
+          }
+        }
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            awslogs-group         = aws_cloudwatch_log_group.firelens.name
+            awslogs-region        = data.aws_region.current.region
+            awslogs-stream-prefix = "firelens"
+          }
+        }
       },
     ]
   )
