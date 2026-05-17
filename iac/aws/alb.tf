@@ -65,15 +65,27 @@ resource "aws_s3_bucket" "alb_logs" {
   tags          = {}
 }
 
+# ログの保管コスト最適化
+# 0〜30日   : Standard    (頻繁にAthenaで参照)
+# 31〜365日 : Standard-IA (参照頻度低・Athenaクエリは引き続き可能)
+# 365日以降 : Glacier     (参照なし・保管のみ・Athenaクエリ不可)
 resource "aws_s3_bucket_lifecycle_configuration" "alb_logs" {
   bucket = aws_s3_bucket.alb_logs.id
 
   rule {
-    id     = "expire"
+    id     = "tiering"
     status = "Enabled"
 
-    expiration {
-      days = 30 # 必要に応じて変更
+    filter {}
+
+    transition {
+      days          = 31
+      storage_class = "STANDARD_IA"
+    }
+
+    transition {
+      days          = 365
+      storage_class = "GLACIER"
     }
   }
 }
