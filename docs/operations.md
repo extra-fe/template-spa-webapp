@@ -126,6 +126,67 @@ aws ecs update-service `
 
 ---
 
+## ECS - ECS Execの有効・無効切り替え
+
+ECS Execは `ecs.tf` の `enable_execute_command = true` で有効化されています。
+コンテナへのシェル接続が可能になるため、調査・デバッグが不要な場合は無効化してください。
+
+```powershell
+# 無効化
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --enable-execute-command false
+
+# 有効化
+aws ecs update-service `
+  --cluster sandbox-aws-dev-cluster `
+  --service sandbox-aws-dev-service `
+  --enable-execute-command true
+```
+
+> CLIでの変更は一時的な対処です。恒久的に変更する場合は `ecs.tf` の `enable_execute_command` を変更して `terraform apply` してください。
+
+---
+
+## ECS - VPCエンドポイント経由の通信確認
+
+VPCエンドポイント（Interface）が有効な場合、エンドポイントのDNS名がVPC内のプライベートIPに解決されます。
+ECS Execでコンテナに接続し、DNS解決結果のIPアドレスで判定します。
+
+```powershell
+# ECS Execでコンテナに接続
+$taskArn = (aws ecs list-tasks `
+  --cluster sandbox-aws-dev-cluster `
+  --service-name sandbox-aws-dev-service `
+  --query 'taskArns[0]' `
+  --output text)
+
+aws ecs execute-command `
+  --cluster sandbox-aws-dev-cluster `
+  --task $taskArn `
+  --container sandbox-aws `
+  --command "/bin/sh" `
+  --interactive
+```
+
+コンテナ内で実行:
+
+```sh
+# ECR APIエンドポイントのDNS解決
+node -e "require('dns').lookup('api.ecr.ap-northeast-1.amazonaws.com', (err, addr) => console.log(addr))"
+
+# CloudWatch LogsエンドポイントのDNS解決
+node -e "require('dns').lookup('logs.ap-northeast-1.amazonaws.com', (err, addr) => console.log(addr))"
+```
+
+| 返ってくるIP | 意味 |
+|---|---|
+| VPC CIDRの範囲内（例: `172.16.x.x`） | VPCエンドポイント経由 ✅ |
+| パブリックIP | NAT Gateway経由 ❌ |
+
+---
+
 ## ECS - ターゲットグループのヘルスチェック確認
 
 ```powershell

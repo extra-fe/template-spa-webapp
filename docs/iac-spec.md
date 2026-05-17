@@ -75,7 +75,19 @@ CloudFront / Front Door (CDN)
 | プライベートサブネット 1 | `172.16.2.0/24` | ap-northeast-1a |
 | プライベートサブネット 2 | `172.16.3.0/24` | ap-northeast-1c |
 
-**VPCエンドポイント:** AWSサービスへのプライベートアクセス用
+**VPCエンドポイント:** NAT Gatewayを経由せずAWSサービスへプライベートアクセスするため
+
+| エンドポイント | タイプ | 用途 |
+|---|---|---|
+| `ssm` | Interface | Session Manager (Bastion) |
+| `ssmmessages` | Interface | Session Manager メッセージ通信 |
+| `ec2messages` | Interface | EC2メッセージ通信 |
+| `ecr.api` | Interface | ECS FargateのECR APIアクセス |
+| `ecr.dkr` | Interface | ECS FargateのDockerイメージPull |
+| `logs` | Interface | ECSコンテナログのCloudWatch Logs送信 |
+| `s3` | Gateway（無料） | ECRイメージレイヤー(S3格納)取得 |
+
+> Auth0 JWKSエンドポイント等の外部サービス呼び出しはVPCエンドポイントで代替できないため、NAT Gatewayは引き続き必要。
 
 ### 3.3 フロントエンド (S3 + CloudFront)
 
