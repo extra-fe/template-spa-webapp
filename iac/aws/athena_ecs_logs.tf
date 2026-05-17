@@ -1,7 +1,6 @@
 # ECSログ用Glueデータベース
 resource "aws_glue_catalog_database" "ecs_logs" {
-  name   = "${replace(var.app-name, "-", "_")}_${var.environment}_ecs_logs"
-  bucket = aws_s3_bucket.athena_results.bucket
+  name = "${replace(var.app-name, "-", "_")}_${var.environment}_ecs_logs"
 }
 
 # ECSログ用Glueテーブル: FireLens(Fluent Bit)がS3へ書き込むJSON形式ログを定義
