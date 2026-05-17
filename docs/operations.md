@@ -243,6 +243,77 @@ aws elbv2 describe-target-health `
 
 ---
 
+## Aurora - AWS Backup
+
+`iac/aws/aws_backup.tf` で設定したAWS Backup Vault配下のリカバリポイント確認、および復元手順です。
+
+### リカバリポイント一覧の確認
+
+```powershell
+$vaultName = "sandbox-aws-dev-aurora-vault"
+
+aws backup list-recovery-points-by-backup-vault `
+  --backup-vault-name $vaultName `
+  --query 'RecoveryPoints[].[RecoveryPointArn,CreationDate,Status,BackupSizeInBytes]' `
+  --output table
+```
+
+### バックアップジョブ実行状況の確認
+
+```powershell
+# 直近のバックアップジョブ(成否含む)
+aws backup list-backup-jobs `
+  --by-backup-vault-name sandbox-aws-dev-aurora-vault `
+  --query 'BackupJobs[].[BackupJobId,State,CreationDate,CompletionDate,StatusMessage]' `
+  --output table
+```
+
+### オンデマンドでバックアップを取得
+
+```powershell
+$accountId = (aws sts get-caller-identity | ConvertFrom-Json).Account
+$clusterArn = "arn:aws:rds:ap-northeast-1:${accountId}:cluster:sandbox-aws-dev-db-cluster"
+
+aws backup start-backup-job `
+  --backup-vault-name sandbox-aws-dev-aurora-vault `
+  --resource-arn $clusterArn `
+  --iam-role-arn "arn:aws:iam::${accountId}:role/AWSBackup-sandbox-aws-dev-role"
+```
+
+### リカバリポイントから復元
+
+復元は別クラスタ（別identifier）として作成されるため、既存クラスタへの上書きにはなりません。復元完了後、必要に応じてアプリの接続先（SSMパラメータの `DATABASE_URL`）を切り替えてください。
+
+```powershell
+$accountId = (aws sts get-caller-identity | ConvertFrom-Json).Account
+$recoveryPointArn = "<list-recovery-points-by-backup-vaultで取得したARN>"
+$roleArn = "arn:aws:iam::${accountId}:role/AWSBackup-sandbox-aws-dev-role"
+
+# メタデータ(復元時の必須パラメータ)を取得
+aws backup get-recovery-point-restore-metadata `
+  --backup-vault-name sandbox-aws-dev-aurora-vault `
+  --recovery-point-arn $recoveryPointArn
+
+# 復元ジョブの開始(metadataはJSON文字列で渡す。DBClusterIdentifierを変更すること)
+$metadata = @{
+  DBClusterIdentifier = "sandbox-aws-dev-db-cluster-restored"
+  Engine              = "aurora-postgresql"
+  EngineMode          = "provisioned"
+  VpcSecurityGroupIds = "<DB SG ID>"
+  DBSubnetGroupName   = "sandbox-aws-dev"
+} | ConvertTo-Json -Compress
+
+aws backup start-restore-job `
+  --recovery-point-arn $recoveryPointArn `
+  --iam-role-arn $roleArn `
+  --resource-type Aurora `
+  --metadata $metadata
+```
+
+> 復元はクラスタのみ作成されるため、別途 `aws rds create-db-instance` でServerless v2インスタンスをアタッチする必要があります。
+
+---
+
 ## リソース削除
 
 ```powershell

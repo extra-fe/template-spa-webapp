@@ -59,6 +59,7 @@ CloudFront / Front Door (CDN)
 | `ecs.tf` | ECS Fargate クラスター・サービス・タスク |
 | `alb.tf` | Application Load Balancer |
 | `aurora_serverless_v2.tf` | Aurora Serverless v2 (PostgreSQL) |
+| `aws_backup.tf` | AWS Backup (Auroraクラスタの長期バックアップ) |
 | `bastion.tf` | Bastion ホスト（DB接続用） |
 | `auth0.tf` | Auth0 SPAクライアント・リソースサーバー |
 | `code-pipeline-backend.tf` | バックエンドCI/CD (CodePipeline) |
@@ -141,6 +142,25 @@ CloudFront / Front Door (CDN)
 | アクセス | プライベートサブネットのみ |
 | 接続文字列保管 | SSM Parameter Store (SecureString) |
 | コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） |
+| 長期バックアップ | AWS Backup (専用Vault・日次・30日保持) — 3.5.1参照 |
+
+#### 3.5.1 バックアップ (AWS Backup)
+
+Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup Vault単位でアクセス制御・保持期間を管理する。
+
+| 項目 | 値 |
+|---|---|
+| Backup Vault | `{app-name}-{environment}-aurora-vault`（専用Vault） |
+| 暗号化キー | `aws/backup` (AWS管理KMSキー) |
+| スケジュール | 日次 02:00 JST（`cron(0 2 * * ? *)` / `Asia/Tokyo`） |
+| 保持期間 | 30日 |
+| start_window / completion_window | 60分 / 240分 |
+| クロスリージョンコピー | 無効 |
+| Cold Storage遷移 | 無効 |
+| 対象リソース | `aws_rds_cluster.cluster` |
+| IAMロール | `AWSBackup-{app-name}-{environment}-role`（`...ForBackup` / `...ForRestores` 管理ポリシー） |
+
+> auto-stop (13:00 JST) で停止状態にある時間帯にバックアップが走るが、停止中Auroraクラスタもスナップショット取得は可能(`CreateDBClusterSnapshot`)。
 
 ### 3.6 ロードバランサー (ALB)
 
@@ -358,6 +378,7 @@ Front Door キャッシュパージ
 | バックエンド実行環境 | ECS Fargate | App Service (Linux) |
 | コンテナレジストリ | ECR | ACR |
 | データベース | Aurora Serverless v2 | PostgreSQL Flexible Server |
+| DB長期バックアップ | AWS Backup (専用Vault) | PostgreSQL Flexible Server組込み (7日保持) |
 | シークレット管理 | SSM Parameter Store | Key Vault |
 | ネットワーク | VPC | VNet |
 | 踏み台 | EC2 Bastion | Azure Bastion |
@@ -450,4 +471,5 @@ terraform apply
 | コンテナレジストリ | プライベートECR | Managed Identity (AcrPull) |
 | 通信暗号化 | HTTPS リダイレクト | HTTPS (Front Door) |
 | ストレージ暗号化 | Aurora暗号化有効 | - |
+| バックアップ暗号化 | AWS Backup Vault (`aws/backup` KMSキー) | PostgreSQLサービス組込み |
 | アクセス制御 | セキュリティグループ | NSG + サブネットデリゲーション |
