@@ -9,20 +9,11 @@ resource "aws_vpc" "vpc" {
   }
 }
 
-# インターネットゲートウェイ: パブリックサブネットから外部へ抜けるための出口
+# インターネットゲートウェイ: Regional NAT Gateway がVPC外部へ抜けるための出口
+# (Regional NAT GatewayはAWSがマネージドな専用ルートテーブルを作成し、自動的にIGWへルートする)
 resource "aws_internet_gateway" "gw" {
   tags = {
     "Name" = "${var.app-name}-${var.environment}"
-  }
-  vpc_id = aws_vpc.vpc.id
-}
-
-# パブリックサブネット(AZ-1a): NAT GatewayなどIGW経由で外部公開するリソースを配置
-resource "aws_subnet" "public1a" {
-  availability_zone = "${data.aws_region.current.region}a"
-  cidr_block        = var.subnet_public1a_cidr_block
-  tags = {
-    "Name" = "${var.app-name}-${var.environment}-public-1a"
   }
   vpc_id = aws_vpc.vpc.id
 }
@@ -47,39 +38,26 @@ resource "aws_subnet" "private1c" {
   vpc_id = aws_vpc.vpc.id
 }
 
-# Elastic IP: NAT Gatewayに割り当てる固定パブリックIP
-resource "aws_eip" "nat" {
-  tags = {
-    "Name" = "${var.app-name}-${var.environment}-nat-eip"
-  }
-  domain = "vpc"
-}
-
-# NAT Gateway: プライベートサブネットからのインターネット向け通信を中継
+# Regional NAT Gateway (automatic mode):
+# - VPC内のENI出現を検知してAZ自動拡張、ワークロード縮退時は自動縮小
+# - IPアドレス管理もAWSが自動で行うため EIP/サブネット指定は不要
+# - publicサブネット不要(AWSが裏側でNAT専用の通信経路を構成)
 resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public1a.id
+  availability_mode = "regional"
+  connectivity_type = "public"
+  vpc_id            = aws_vpc.vpc.id
   tags = {
-    "Name" = "${var.app-name}-${var.environment}-nat-public1a"
+    "Name" = "${var.app-name}-${var.environment}-nat-regional"
+  }
+  # AWS公式上、Regional NAT GatewayはAZ拡張に最大60分かかる仕様。
+  # provider既定の10分では createタイムアウトしやすいため明示的に延長。
+  timeouts {
+    create = "60m"
+    delete = "30m"
   }
 }
 
-# パブリック用ルートテーブル(IGW向け)
-resource "aws_route_table" "custom" {
-  tags = {
-    "Name" = "${var.app-name}-${var.environment}-public"
-  }
-  vpc_id = aws_vpc.vpc.id
-}
-
-# パブリックルート: 0.0.0.0/0 を Internet Gateway 経由で外に出す
-resource "aws_route" "custom" {
-  route_table_id         = aws_route_table.custom.id
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.gw.id
-}
-
-# プライベート用ルートテーブル(NAT Gateway向け)
+# プライベート用ルートテーブル(Regional NAT Gateway向け)
 resource "aws_route_table" "main" {
   tags = {
     "Name" = "${var.app-name}-${var.environment}-private"
@@ -87,19 +65,14 @@ resource "aws_route_table" "main" {
   vpc_id = aws_vpc.vpc.id
 }
 
-# プライベートルート: 0.0.0.0/0 を NAT Gateway 経由で外に出す
+# プライベートルート: 0.0.0.0/0 を Regional NAT Gateway 経由で外に出す
+# (単一NAT IDをAZをまたがる全プライベートサブネットで共有可能)
 resource "aws_route" "main" {
   route_table_id         = aws_route_table.main.id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.nat.id
 }
 
-
-# パブリックサブネット(1a)へパブリックルートテーブルを関連付け
-resource "aws_route_table_association" "public1a" {
-  route_table_id = aws_route_table.custom.id
-  subnet_id      = aws_subnet.public1a.id
-}
 
 # プライベートサブネット(1a)へプライベートルートテーブルを関連付け
 resource "aws_route_table_association" "private1a" {

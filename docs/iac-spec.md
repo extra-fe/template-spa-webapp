@@ -50,7 +50,7 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 |---|---|
 | `provider.tf` | AWS, Auth0 プロバイダー設定 |
 | `variables.tf` | 入力変数定義 |
-| `vpc.tf` | VPC, サブネット, ルートテーブル, NAT Gateway |
+| `vpc.tf` | VPC, プライベートサブネット, ルートテーブル, Regional NAT Gateway |
 | `vpc_endpoint.tf` | VPCエンドポイント（プライベートアクセス） |
 | `vpc_flow_log.tf` | VPCフローログ（S3出力） |
 | `security-group.tf` | セキュリティグループ |
@@ -83,9 +83,10 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 | リソース | 変数名 | デフォルト値 | AZ |
 |---|---|---|---|
 | VPC | `vpc_cidr_block` | `172.16.0.0/16` | - |
-| パブリックサブネット | `subnet_public1a_cidr_block` | `172.16.1.0/24` | ap-northeast-1a |
 | プライベートサブネット 1 | `subnet_private1a_cidr_block` | `172.16.2.0/24` | ap-northeast-1a |
 | プライベートサブネット 2 | `subnet_private1c_cidr_block` | `172.16.3.0/24` | ap-northeast-1c |
+
+> Regional NAT Gateway (automatic mode) を使用しているため、NAT専用のパブリックサブネットは持たない。AWSがVPC配下のENI出現を検知して必要なAZへ自動拡張し、IPアドレスも自動払い出しされる。
 
 > **⚠️ CIDRアドレスの設計について**
 > デフォルト値はそのまま使用できますが、以下のケースでは変更が必要です。
@@ -94,7 +95,7 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 >
 > 変更する場合は `terraform.tfvars` で上書きしてください。サブネットはVPC CIDRの範囲内に収めること。
 
-**VPCエンドポイント:** NAT Gatewayを経由せずAWSサービスへプライベートアクセスするため
+**VPCエンドポイント:** Regional NAT Gatewayを経由せずAWSサービスへプライベートアクセスするため
 
 | エンドポイント | タイプ | 用途 |
 |---|---|---|
@@ -106,7 +107,7 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 | `logs` | Interface | ECSコンテナログのCloudWatch Logs送信 |
 | `s3` | Gateway（無料） | ECRイメージレイヤー(S3格納)取得 |
 
-> Auth0 JWKSエンドポイント等の外部サービス呼び出しはVPCエンドポイントで代替できないため、NAT Gatewayは引き続き必要。
+> Auth0 JWKSエンドポイント等の外部サービス呼び出しはVPCエンドポイントで代替できないため、Regional NAT Gatewayは引き続き必要。
 
 ### 3.3 フロントエンド (S3 + CloudFront)
 
@@ -490,7 +491,6 @@ Front Door キャッシュパージ
 |---|---|---|
 | `codestar-connection-arn` | (必須) | CodeStar接続ARN |
 | `vpc_cidr_block` | `172.16.0.0/16` | VPC CIDRブロック |
-| `subnet_public1a_cidr_block` | `172.16.1.0/24` | パブリックサブネットCIDR |
 | `subnet_private1a_cidr_block` | `172.16.2.0/24` | プライベートサブネット1 CIDR |
 | `subnet_private1c_cidr_block` | `172.16.3.0/24` | プライベートサブネット2 CIDR |
 

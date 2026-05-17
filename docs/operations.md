@@ -222,7 +222,7 @@ node -e "require('dns').lookup('logs.ap-northeast-1.amazonaws.com', (err, addr) 
 | 返ってくるIP | 意味 |
 |---|---|
 | VPC CIDRの範囲内（`vpc_cidr_block` 変数で設定した範囲） | VPCエンドポイント経由 ✅ |
-| パブリックIP | NAT Gateway経由 ❌ |
+| パブリックIP | Regional NAT Gateway経由 ❌ |
 
 ---
 

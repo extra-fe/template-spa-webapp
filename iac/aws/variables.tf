@@ -57,11 +57,6 @@ variable "backend-src-root" {
 variable "vpc_cidr_block" {
   default = "172.16.0.0/16"
 }
-# パブリックサブネット(AZ-1a)のCIDR
-variable "subnet_public1a_cidr_block" {
-  default = "172.16.1.0/24"
-}
-
 # プライベートサブネット(AZ-1a)のCIDR
 variable "subnet_private1a_cidr_block" {
   default = "172.16.2.0/24"
