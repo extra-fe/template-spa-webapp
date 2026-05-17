@@ -1,45 +1,3 @@
-# Athenaクエリ結果格納用S3バケット(クエリのたびにCSV/メタデータがここに書き出される)
-resource "aws_s3_bucket" "athena_results" {
-  bucket = "${var.app-name}-${var.environment}-athena-results-${random_string.suffix.result}"
-  tags = {
-    "Name" = "${var.app-name}-${var.environment}-athena-results"
-  }
-}
-
-# パブリックアクセス全面ブロック
-resource "aws_s3_bucket_public_access_block" "athena_results" {
-  bucket                  = aws_s3_bucket.athena_results.bucket
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-# バージョニング無効化(他バケットと方針を揃える)
-resource "aws_s3_bucket_versioning" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.bucket
-
-  versioning_configuration {
-    status = "Disabled"
-  }
-}
-
-# 30日でクエリ結果を自動削除(再実行で再生成できるため長期保管不要)
-resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {
-  bucket = aws_s3_bucket.athena_results.bucket
-
-  rule {
-    id     = "expire-old-results"
-    status = "Enabled"
-
-    filter {}
-
-    expiration {
-      days = 30
-    }
-  }
-}
-
 # Glueデータベース: Athenaから参照されるデータカタログ
 # 名前にハイフン不可のため var.app-name のハイフンをアンダースコアに変換
 resource "aws_glue_catalog_database" "vpc_flow_logs" {
@@ -145,9 +103,10 @@ resource "aws_glue_catalog_table" "vpc_flow_logs" {
   }
 }
 
-# Athenaワークグループ: クエリ結果の出力先を強制し、誤って別バケットへ書き出すのを防ぐ
-resource "aws_athena_workgroup" "main" {
-  name          = "${var.app-name}-${var.environment}"
+# VPCフローログ専用Athenaワークグループ
+# クエリ結果はALBログと共用の athena_results バケット(alb.tf)に出力
+resource "aws_athena_workgroup" "vpc_flow_logs" {
+  name          = "${var.app-name}-${var.environment}-vpc-flow-logs"
   force_destroy = true
 
   configuration {
@@ -164,6 +123,6 @@ resource "aws_athena_workgroup" "main" {
   }
 
   tags = {
-    "Name" = "${var.app-name}-${var.environment}"
+    "Name" = "${var.app-name}-${var.environment}-vpc-flow-logs"
   }
 }
