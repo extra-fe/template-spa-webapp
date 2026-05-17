@@ -113,18 +113,35 @@ resource "aws_ecs_task_definition" "task_definition" {
       },
       {
         name      = "log_router"
-        image     = "public.ecr.aws/aws-observability/aws-for-fluent-bit:stable"
+        image     = "${aws_ecr_repository.fluent_bit.repository_url}:latest"
         essential = true
         cpu       = 0
         mountPoints  = []
         portMappings = []
-        environment  = []
         volumesFrom  = []
+        environment = [
+          {
+            name  = "HEALTH_CHECK_PATH"
+            value = var.health-check-path
+          },
+          {
+            name  = "AWS_REGION"
+            value = data.aws_region.current.region
+          },
+          {
+            name  = "CW_LOG_GROUP"
+            value = aws_cloudwatch_log_group.backend.name
+          },
+          {
+            name  = "ECS_LOG_BUCKET"
+            value = aws_s3_bucket.ecs_logs.bucket
+          },
+        ]
         firelensConfiguration = {
           type = "fluentbit"
           options = {
-            "config-file-type"  = "s3"
-            "config-file-value" = "arn:aws:s3:::${aws_s3_bucket.fluent_bit_config.bucket}/fluent-bit.conf"
+            "config-file-type"  = "file"
+            "config-file-value" = "/fluent-bit/etc/extra.conf"
           }
         }
         logConfiguration = {
