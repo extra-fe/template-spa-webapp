@@ -99,6 +99,43 @@ terraform init && terraform apply
 
 詳細は [IaC仕様書](./docs/iac-spec.md) を参照してください。
 
+### DB接続プール設定の指針 (AWS)
+
+`iac/aws/variables.tf` の以下の変数でPrismaのコネクションプールを調整します。
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `db-connection-limit` | `5` | Prismaが1プロセスで保持するコネクション数の上限 |
+| `db-pool-timeout` | `15` | コネクション空き待ちのタイムアウト（秒） |
+
+**`db-connection-limit` の決め方:**
+
+Aurora Serverless v2 の最大コネクション数はACUに比例します。
+
+| インスタンス / ACU | メモリ | 最大コネクション数（概算） |
+|---|---|---|
+| Serverless v2 0.5 ACU | 1 GiB | 約 45 |
+| Serverless v2 1.0 ACU | 2 GiB | 約 90 |
+| Serverless v2 2.0 ACU | 4 GiB | 約 180 |
+| db.t3.medium | 4 GiB | 約 450 |
+| db.m5.large | 8 GiB | 約 900 |
+| db.m5.xlarge | 16 GiB | 約 1,800 |
+| db.m5.2xlarge | 32 GiB | 約 3,600 |
+
+> 正確な値は `LEAST({DBInstanceClassMemory / 9531392}, 5000)` で計算されます。
+
+以下の条件を満たす値を設定してください。
+
+```
+ECSタスク最大数 × db-connection-limit ≦ Aurora最大コネクション数 × 0.8 (安全マージン)
+```
+
+例: ACU最大 1.0（最大コネクション90）、ECSタスク最大10台の場合
+```
+10 × db-connection-limit ≦ 90 × 0.8 = 72
+→ db-connection-limit ≦ 7  （余裕を見て 5 程度を推奨）
+```
+
 ## ドキュメント
 
 | ドキュメント | 内容 |
