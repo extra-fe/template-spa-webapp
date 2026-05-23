@@ -223,16 +223,31 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
           ]
         },
         {
+          # ListClusters / ListTaskDefinitions はAWS仕様上 Resource = * が必須
           Action = [
             "ecs:ListClusters",
             "ecs:ListTaskDefinitions",
-            "ecs:DescribeTasks",
+          ]
+          Effect   = "Allow"
+          Resource = ["*"]
+        },
+        {
+          # タスク定義の参照・登録はこのプロジェクトのファミリーのみに限定
+          Action = [
             "ecs:DescribeTaskDefinition",
             "ecs:RegisterTaskDefinition",
           ]
           Effect = "Allow"
           Resource = [
-            "*"
+            "${aws_ecs_task_definition.task_definition.arn_without_revision}:*",
+          ]
+        },
+        {
+          # タスク参照はこのクラスタのタスクのみに限定
+          Action = ["ecs:DescribeTasks"]
+          Effect = "Allow"
+          Resource = [
+            "arn:aws:ecs:${data.aws_region.current.region}:${data.aws_caller_identity.self.account_id}:task/${aws_ecs_cluster.cluster.name}/*",
           ]
         },
         {

@@ -7,14 +7,15 @@ resource "aws_security_group" "alb" {
   vpc_id = aws_vpc.vpc.id
 }
 
-# ALBアウトバウンド: 全外向け通信を許可(ECSへの転送等)
+# ALBアウトバウンド: ECSサービスのAPIポートのみ許可
 resource "aws_security_group_rule" "alb_out" {
-  security_group_id = aws_security_group.alb.id
-  type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id        = aws_security_group.alb.id
+  type                     = "egress"
+  protocol                 = "tcp"
+  from_port                = var.api-expose-port
+  to_port                  = var.api-expose-port
+  source_security_group_id = aws_security_group.ecs_service.id
+  description              = "to ECS service"
 }
 
 # ECSサービス用SG
@@ -38,14 +39,26 @@ resource "aws_security_group_rule" "ecs_service_in_alb" {
   description              = "internal ALB target group"
 }
 
-# ECSアウトバウンド: 全外向け通信を許可(NAT経由のSaaS呼び出し等)
-resource "aws_security_group_rule" "ecs_service_out" {
+# ECSアウトバウンド: HTTPS(VPCエンドポイント経由のECR/CloudWatch + NAT経由の外部SaaS)
+resource "aws_security_group_rule" "ecs_service_out_https" {
   security_group_id = aws_security_group.ecs_service.id
   type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
+  protocol          = "tcp"
+  from_port         = 443
+  to_port           = 443
   cidr_blocks       = ["0.0.0.0/0"]
+  description       = "HTTPS to VPC endpoints and external SaaS (Auth0 etc.)"
+}
+
+# ECSアウトバウンド: AuroraへのPostgreSQL接続
+resource "aws_security_group_rule" "ecs_service_out_db" {
+  security_group_id        = aws_security_group.ecs_service.id
+  type                     = "egress"
+  protocol                 = "tcp"
+  from_port                = 5432
+  to_port                  = 5432
+  source_security_group_id = aws_security_group.db.id
+  description              = "to Aurora DB"
 }
 
 # CloudFront VPC Origin専用の管理SGを参照(VPC Origin作成時にAWSが自動生成)
@@ -109,16 +122,6 @@ resource "aws_security_group_rule" "db_in_bastion" {
 }
 
 
-# DBアウトバウンド: 全外向け許可
-resource "aws_security_group_rule" "db_out" {
-  security_group_id = aws_security_group.db.id
-  type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
-}
-
 # 踏み台EC2用SG
 resource "aws_security_group" "bastion" {
   description = "bastion"
@@ -142,14 +145,26 @@ resource "aws_security_group_rule" "bastion_in_mypc" {
   description       = "my pc"
 }
 
-# 踏み台アウトバウンド: 全外向け許可(SSMエンドポイント・DB等への通信用)
-resource "aws_security_group_rule" "bastion_out" {
+# 踏み台アウトバウンド: SSM VPCインターフェイスエンドポイントへのHTTPS
+resource "aws_security_group_rule" "bastion_out_ssm" {
   security_group_id = aws_security_group.bastion.id
   type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
+  protocol          = "tcp"
+  from_port         = 443
+  to_port           = 443
+  cidr_blocks       = [var.vpc_cidr_block]
+  description       = "SSM VPC endpoints"
+}
+
+# 踏み台アウトバウンド: DB接続(ポートフォワード・メンテ用)
+resource "aws_security_group_rule" "bastion_out_db" {
+  security_group_id        = aws_security_group.bastion.id
+  type                     = "egress"
+  protocol                 = "tcp"
+  from_port                = 5432
+  to_port                  = 5432
+  source_security_group_id = aws_security_group.db.id
+  description              = "to Aurora DB"
 }
 
 
@@ -175,12 +190,13 @@ resource "aws_security_group_rule" "ssm_in" {
   description       = "ssm"
 }
 
-# SSMエンドポイントSGからのアウトバウンド: 全許可
+# SSMエンドポイントSGからのアウトバウンド: VPC内HTTPSのみ(エンドポイントはVPC内部で完結)
 resource "aws_security_group_rule" "ssm_out" {
   security_group_id = aws_security_group.ssm.id
   type              = "egress"
-  protocol          = "-1"
-  from_port         = 0
-  to_port           = 0
-  cidr_blocks       = ["0.0.0.0/0"]
+  protocol          = "tcp"
+  from_port         = 443
+  to_port           = 443
+  cidr_blocks       = [var.vpc_cidr_block]
+  description       = "response to VPC resources"
 }
