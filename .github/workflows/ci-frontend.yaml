@@ -16,12 +16,35 @@ jobs:
     name: Trivy fs scan (deps + secrets)
     runs-on: ubuntu-latest
     if: github.event_name != 'workflow_dispatch' || github.actor == 'jinka1997'
+    outputs:
+      vuln-high: ${{ steps.vuln-count.outputs.high }}
+      vuln-critical: ${{ steps.vuln-count.outputs.critical }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Trivy vulnerability scan (yarn.lock)
+      - name: Trivy vulnerability scan (JSON for counts)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: frontend/sandbox-frontend
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          format: json
+          output: trivy-vuln.json
+
+      - name: Parse vulnerability counts
+        id: vuln-count
+        run: |
+          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="HIGH")] | length' trivy-vuln.json 2>/dev/null || echo 0)
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' trivy-vuln.json 2>/dev/null || echo 0)
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+
+      - name: Trivy vulnerability scan (table + gate)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -72,7 +95,7 @@ jobs:
                 {
                   "color": "${{ env.COLOR }}",
                   "mrkdwn_in": ["text"],
-                  "text": "${{ env.RESULT }} *CI - Frontend (Trivy)*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}` | *Commit:* `${{ github.sha }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  "text": "${{ env.RESULT }} *CI - Frontend (Trivy)*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}` | *Commit:* `${{ github.sha }}`\n*Vulns (fixable):* CRITICAL: ${{ needs.trivy-scan.outputs.vuln-critical }}, HIGH: ${{ needs.trivy-scan.outputs.vuln-high }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
                 }
               ]
             }
