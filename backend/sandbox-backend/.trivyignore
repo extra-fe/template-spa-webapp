@@ -1,0 +1,5 @@
+# CVE-2026-33671: picomatch RegExp DoS via crafted extglob patterns
+# yarn.lock はすでに修正済みバージョン 4.0.4 を指定している。
+# イメージ内の 4.0.3 はビルドパイプラインで推移的にコピーされる依存パッケージ由来と
+# 考えられるが出所が特定できない。本アプリケーションは production で picomatch を使用しない。
+CVE-2026-33671
