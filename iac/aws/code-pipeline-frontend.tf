@@ -138,7 +138,7 @@ resource "aws_codebuild_project" "frontend" {
                   commands:
                      - npm -v
                      - node -v
-                     - n 23.1.0
+                     - n 22.15.0
                      - node -v
                      - npm install -g yarn
                      - yarn --version
