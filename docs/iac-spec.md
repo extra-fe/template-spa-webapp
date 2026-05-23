@@ -162,10 +162,47 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 | ストレージ暗号化 | 有効 |
 | アクセス | プライベートサブネットのみ |
 | 接続文字列保管 | SSM Parameter Store (SecureString) |
-| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） |
-| 長期バックアップ | AWS Backup (専用Vault・日次・30日保持) — 3.5.1参照 |
+| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） — 3.5.1参照 |
+| 長期バックアップ | AWS Backup (専用Vault・日次・30日保持) — 3.5.2参照 |
 
-#### 3.5.1 バックアップ (AWS Backup)
+#### 3.5.1 コネクションプール設定の指針
+
+`iac/aws/variables.tf` の以下の変数でPrismaのコネクションプールを調整する。
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `db-connection-limit` | `5` | Prismaが1プロセスで保持するコネクション数の上限 |
+| `db-pool-timeout` | `15` | コネクション空き待ちのタイムアウト（秒） |
+
+**`db-connection-limit` の決め方:**
+
+Aurora Serverless v2 の最大コネクション数はACUに比例する。
+
+| インスタンス / ACU | メモリ | 最大コネクション数（概算） |
+|---|---|---|
+| Serverless v2 0.5 ACU | 1 GiB | 約 45 |
+| Serverless v2 1.0 ACU | 2 GiB | 約 90 |
+| Serverless v2 2.0 ACU | 4 GiB | 約 180 |
+| db.t3.medium | 4 GiB | 約 450 |
+| db.m5.large | 8 GiB | 約 900 |
+| db.m5.xlarge | 16 GiB | 約 1,800 |
+| db.m5.2xlarge | 32 GiB | 約 3,600 |
+
+> 正確な値は `LEAST({DBInstanceClassMemory / 9531392}, 5000)` で計算される。
+
+以下の条件を満たす値を設定すること。
+
+```
+ECSタスク最大数 × db-connection-limit ≦ Aurora最大コネクション数 × 0.8 (安全マージン)
+```
+
+例: ACU最大 1.0（最大コネクション90）、ECSタスク最大10台の場合
+```
+10 × db-connection-limit ≦ 90 × 0.8 = 72
+→ db-connection-limit ≦ 7  （余裕を見て 5 程度を推奨）
+```
+
+#### 3.5.2 バックアップ (AWS Backup)
 
 Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup Vault単位でアクセス制御・保持期間を管理する。
 
@@ -287,6 +324,26 @@ Build (CodeBuild)
 |---|---|
 | SPAクライアント | authorization_code, implicit, refresh_token |
 | リソースサーバー | APIオーディエンス定義 |
+
+### 3.13 自動起動・停止 (EventBridge Scheduler + Step Functions)
+
+開発コスト削減のため、EventBridge Scheduler + Step Functions でリソースを自動制御する。
+
+| スケジュール | 時刻（JST） | 対象 | デフォルト |
+|---|---|---|---|
+| Auto-stop | 毎日 13:00 | ECS（タスク数→0）→ Aurora 停止 → Bastion 停止 | **有効** |
+| Auto-start | 土日 5:00 | Bastion 起動 → Aurora 起動（12分待機）→ ECS（タスク数→1） | 無効 |
+
+> Auto-start はデフォルト無効。平日も自動起動したい場合は AWS コンソール（EventBridge Scheduler）または Terraform の `state` を `"ENABLED"` に変更する。
+
+**手動起動・停止**
+
+Step Functions コンソールから対象のステートマシンを選択し「実行を開始」する。
+
+| ステートマシン名 | 操作 |
+|---|---|
+| `exec-auto-stop-{app-name}-{environment}` | 停止 |
+| `exec-auto-start-{app-name}-{environment}` | 起動 |
 
 ---
 
@@ -441,7 +498,59 @@ Front Door キャッシュパージ
 
 ---
 
-## 5. AWS / Azure リソース対応表
+## 5. GitHub Actions CI (セキュリティスキャン)
+
+フロントエンド・バックエンドの Pull Request 時に Trivy でセキュリティスキャンを実行する。
+
+| ワークフロー | ファイル | トリガーパス |
+|---|---|---|
+| CI - Frontend (Trivy scan) | `.github/workflows/ci-frontend.yaml` | `frontend/**` |
+| CI - Backend (Trivy scan) | `.github/workflows/ci-backend.yaml` | `backend/**` |
+
+### 5.1 スキャン内容
+
+**フロントエンド:**
+
+| ジョブ | 内容 |
+|---|---|
+| `trivy-scan` | `frontend/sandbox-frontend` の fs スキャン（依存パッケージ脆弱性 + シークレット検出） |
+| `notify-slack` | Slack 通知（CRITICAL/HIGH 脆弱性件数を含む） |
+
+**バックエンド:**
+
+| ジョブ | 内容 |
+|---|---|
+| `trivy-fs` | `backend/sandbox-backend` の fs スキャン（依存パッケージ脆弱性 + シークレット検出） |
+| `trivy-image` | Docker イメージビルド＋スキャン（ECR プッシュなし） |
+| `notify-slack` | Slack 通知（fs / image それぞれの CRITICAL/HIGH 件数を含む） |
+
+### 5.2 CVE 抑制 (.trivyignore)
+
+修正不能な CVE を `backend/sandbox-backend/.trivyignore` で管理する。新たに抑制する場合は CVE 番号・理由・追跡 Issue を必ずコメントで記載すること。
+
+| CVE | パッケージ | 理由 | 追跡 |
+|---|---|---|---|
+| CVE-2026-33671 | picomatch 4.0.3 | yarn.lock は 4.0.4 を指定済み。Docker イメージ内の 4.0.3 の出所が特定できない。本アプリは production で picomatch を使用しない。 | [Issue #59](https://github.com/extra-fe/template-spa-webapp/issues/59) |
+
+### 5.3 手動実行 (workflow_dispatch)
+
+`ALLOWED_DISPATCH_USERS` リポジトリ変数（JSON 配列）に登録したユーザーのみ手動実行可能。
+
+```json
+["username1", "username2"]
+```
+
+### 5.4 ブランチ保護 (main)
+
+| 設定 | 値 |
+|---|---|
+| PR 必須 | 有効（承認者 1 名以上） |
+| CODEOWNERS レビュー必須 | 有効（`.github/CODEOWNERS` で全ファイルに `@jinka1997` を設定） |
+| 古い承認の破棄 | PR 更新時に承認をリセット |
+
+---
+
+## 6. AWS / Azure リソース対応表
 
 | 機能 | AWS | Azure |
 |---|---|---|
@@ -463,9 +572,9 @@ Front Door キャッシュパージ
 | 監視ログ | CloudWatch Logs | Log Analytics Workspace |
 | CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド) |
 
-## 6. Terraform 変数
+## 7. Terraform 変数
 
-### 6.1 共通変数
+### 7.1 共通変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -482,10 +591,10 @@ Front Door キャッシュパージ
 | `health-check-path` | `/health` | ヘルスチェックパス |
 | `api-expose-port` | `3000` | コンテナ公開ポート |
 | `local-pc-ip-addresses` | `[]` | 接続元IPアドレス（Bastion用） |
-| `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は README 参照） |
+| `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は 3.5.1 参照） |
 | `db-pool-timeout` | `15` | Prismaコネクション空き待ちタイムアウト（秒） |
 
-### 6.2 AWS固有変数
+### 7.2 AWS固有変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -494,7 +603,7 @@ Front Door キャッシュパージ
 | `subnet_private1a_cidr_block` | `172.16.2.0/24` | プライベートサブネット1 CIDR |
 | `subnet_private1c_cidr_block` | `172.16.3.0/24` | プライベートサブネット2 CIDR |
 
-### 6.3 Azure固有変数
+### 7.3 Azure固有変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -504,9 +613,9 @@ Front Door キャッシュパージ
 | `public-key-vault-rg-name` | `""` | 公開Key Vaultリソースグループ名 |
 | `public-key-vault-secret` | `""` | 公開Key Vaultシークレット |
 
-## 7. デプロイ手順
+## 8. デプロイ手順
 
-### 7.1 初回セットアップ
+### 8.1 初回セットアップ
 
 ```bash
 # AWS
@@ -524,7 +633,7 @@ terraform plan
 terraform apply
 ```
 
-### 7.2 アプリケーションデプロイ
+### 8.2 アプリケーションデプロイ
 
 **AWS:**
 - `main` ブランチへのpushでCodePipelineが自動トリガー
@@ -535,7 +644,7 @@ terraform apply
 - GitHub Actionsワークフローを手動実行 (`workflow_dispatch`)
 - Key Vaultから動的に設定値を取得
 
-## 8. セキュリティ設計
+## 9. セキュリティ設計
 
 | セキュリティ施策 | AWS | Azure |
 |---|---|---|
