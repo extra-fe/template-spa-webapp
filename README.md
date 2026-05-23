@@ -34,6 +34,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 | IaC | Terraform 1.13 |
 | CI/CD (AWS) | CodePipeline + CodeBuild |
 | CI/CD (Azure) | GitHub Actions (OIDC) |
+| セキュリティスキャン | GitHub Actions (Trivy) |
 | 認証 | Auth0 (JWT / RS256) |
 
 ## ディレクトリ構成
@@ -51,7 +52,9 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 │   ├── iac-spec.md
 │   └── diagrams/                # インフラ構成図 (Draw.io SVG)
 ├── appendix/                    # 正誤表・補足資料
-└── .github/workflows/           # GitHub Actions (Azure用)
+└── .github/
+    ├── CODEOWNERS               # レビュー必須設定
+    └── workflows/               # GitHub Actions CI (Trivy scan, Azure deploy)
 ```
 
 ## AWS / Azure リソース対応表
@@ -360,7 +363,7 @@ LIMIT 50;
 |---|---|
 | [Frontend仕様書](./docs/frontend-spec.md) | ルーティング、Auth0認証、画面仕様、API通信 |
 | [Backend仕様書](./docs/backend-spec.md) | APIエンドポイント、DBスキーマ、JWT認証、OpenTelemetry |
-| [IaC仕様書](./docs/iac-spec.md) | AWS/Azure リソース定義、CI/CD、セキュリティ設計 |
+| [IaC仕様書](./docs/iac-spec.md) | AWS/Azure リソース定義、CI/CD、セキュリティ設計、Trivy スキャン設定 |
 | [AWS構成図](./docs/diagrams/aws-architecture.drawio.svg) | AWS インフラ構成図 (Draw.io SVG) |
 | [Azure構成図](./docs/diagrams/azure-architecture.drawio.svg) | Azure インフラ構成図 (Draw.io SVG) |
 | [CI/CDパイプライン図](./docs/diagrams/cicd-pipeline.drawio.svg) | AWS/Azure CI/CD 比較図 (Draw.io SVG) |
