@@ -473,7 +473,7 @@ App Service 再起動
 ```
 Checkout
   ▼
-Node.js 23.1 セットアップ
+Node.js 22.15.0 セットアップ
   ▼
 Azure Login (OIDC)
   ▼
