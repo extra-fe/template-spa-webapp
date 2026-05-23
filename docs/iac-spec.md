@@ -231,12 +231,15 @@ Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup V
 
 ### 3.7 セキュリティグループ
 
-| SG名 | 用途 | インバウンド |
-|---|---|---|
-| ALB SG | ロードバランサー | CloudFront → ALB |
-| ECS SG | Fargate タスク | ALB → ECS (ポート3000) |
-| DB SG | Aurora | ECS → DB (ポート5432) |
-| Bastion SG | 踏み台 | 指定IP → Bastion |
+インバウンド・アウトバウンドともに最小権限で構成する。
+
+| SG名 | 用途 | インバウンド | アウトバウンド |
+|---|---|---|---|
+| ALB SG | ロードバランサー | CloudFront VPC Origin → TCP 80 | TCP `api-expose-port` → ECS SG のみ |
+| ECS SG | Fargate タスク | ALB → TCP 3000 | TCP 443 to `0.0.0.0/0`（VPCエンドポイント＋外部SaaS）/ TCP 5432 → DB SG |
+| DB SG | Aurora | ECS → TCP 5432 / Bastion → TCP 5432 | **なし**（Aurora はアウトバウンド接続を開始しない） |
+| Bastion SG | 踏み台 | 指定IP → TCP 0-65535 | TCP 443 → VPC CIDR（SSMエンドポイント）/ TCP 5432 → DB SG |
+| SSM endpoint SG | VPCインターフェイスエンドポイント | VPC CIDR → TCP 443 | TCP 443 → VPC CIDR |
 
 ### 3.8 WAF (AWS WAF v2)
 
@@ -657,3 +660,5 @@ terraform apply
 | ストレージ暗号化 | Aurora暗号化有効 | - |
 | バックアップ暗号化 | AWS Backup Vault (`aws/backup` KMSキー) | PostgreSQLサービス組込み |
 | アクセス制御 | セキュリティグループ | NSG + サブネットデリゲーション |
+| SG egress 最小化 | ALB/ECS/DB/Bastion/SSM endpoint の egress を用途別ポート・宛先に限定（DB egress なし） | — |
+| IAM 最小権限 | CodePipeline ECS権限を特定タスク定義・クラスタ ARN に限定 | — |
