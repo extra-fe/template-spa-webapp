@@ -162,10 +162,47 @@ CloudFront (+ WAF v2) / Front Door (CDN)
 | ストレージ暗号化 | 有効 |
 | アクセス | プライベートサブネットのみ |
 | 接続文字列保管 | SSM Parameter Store (SecureString) |
-| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） |
-| 長期バックアップ | AWS Backup (専用Vault・日次・30日保持) — 3.5.1参照 |
+| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で指定（Prisma） — 3.5.1参照 |
+| 長期バックアップ | AWS Backup (専用Vault・日次・30日保持) — 3.5.2参照 |
 
-#### 3.5.1 バックアップ (AWS Backup)
+#### 3.5.1 コネクションプール設定の指針
+
+`iac/aws/variables.tf` の以下の変数でPrismaのコネクションプールを調整する。
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `db-connection-limit` | `5` | Prismaが1プロセスで保持するコネクション数の上限 |
+| `db-pool-timeout` | `15` | コネクション空き待ちのタイムアウト（秒） |
+
+**`db-connection-limit` の決め方:**
+
+Aurora Serverless v2 の最大コネクション数はACUに比例する。
+
+| インスタンス / ACU | メモリ | 最大コネクション数（概算） |
+|---|---|---|
+| Serverless v2 0.5 ACU | 1 GiB | 約 45 |
+| Serverless v2 1.0 ACU | 2 GiB | 約 90 |
+| Serverless v2 2.0 ACU | 4 GiB | 約 180 |
+| db.t3.medium | 4 GiB | 約 450 |
+| db.m5.large | 8 GiB | 約 900 |
+| db.m5.xlarge | 16 GiB | 約 1,800 |
+| db.m5.2xlarge | 32 GiB | 約 3,600 |
+
+> 正確な値は `LEAST({DBInstanceClassMemory / 9531392}, 5000)` で計算される。
+
+以下の条件を満たす値を設定すること。
+
+```
+ECSタスク最大数 × db-connection-limit ≦ Aurora最大コネクション数 × 0.8 (安全マージン)
+```
+
+例: ACU最大 1.0（最大コネクション90）、ECSタスク最大10台の場合
+```
+10 × db-connection-limit ≦ 90 × 0.8 = 72
+→ db-connection-limit ≦ 7  （余裕を見て 5 程度を推奨）
+```
+
+#### 3.5.2 バックアップ (AWS Backup)
 
 Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup Vault単位でアクセス制御・保持期間を管理する。
 
@@ -534,7 +571,7 @@ Front Door キャッシュパージ
 | `health-check-path` | `/health` | ヘルスチェックパス |
 | `api-expose-port` | `3000` | コンテナ公開ポート |
 | `local-pc-ip-addresses` | `[]` | 接続元IPアドレス（Bastion用） |
-| `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は README 参照） |
+| `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は 3.5.1 参照） |
 | `db-pool-timeout` | `15` | Prismaコネクション空き待ちタイムアウト（秒） |
 
 ### 7.2 AWS固有変数
