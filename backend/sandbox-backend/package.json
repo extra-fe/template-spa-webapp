@@ -81,6 +81,9 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.3"
   },
+  "resolutions": {
+    "**/@opentelemetry/otlp-transformer/protobufjs": "^8.4.2"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
