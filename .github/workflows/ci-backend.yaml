@@ -104,6 +104,7 @@ jobs:
           exit-code: '0'
           format: json
           output: trivy-image.json
+          trivyignores: ${{ env.BACKEND_DIR }}/.trivyignore
 
       - name: Parse vulnerability counts
         id: vuln-count
@@ -123,6 +124,7 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+          trivyignores: ${{ env.BACKEND_DIR }}/.trivyignore
 
   notify-slack:
     name: Notify Slack
