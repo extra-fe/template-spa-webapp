@@ -110,6 +110,167 @@ LOCATION 's3://<バケット名>/AWSLogs/<AWSアカウントID>/elasticloadbalan
 
 ---
 
+## Athena - ログ分析クエリ
+
+VPCフローログ・ALBアクセスログ・CloudFrontアクセスログ・WAFログ・ECSコンテナログを Athena で分析するためのクエリ集です。
+
+**partition projection について**
+
+Glueテーブルに partition projection を設定しているため、新しい日付のログが届いても `MSCK REPAIR TABLE` や手動でのパーティション追加は不要です。クエリ実行時にAthenaが日付範囲（過去1年〜現在）からS3パスを自動計算して参照します。
+
+### VPCフローログ
+
+VPC全体のトラフィック（ACCEPT / REJECT 両方）をS3へ約10分ごとに記録しています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-vpc-flow-logs` に切替える
+3. データベース `{app_name}_{environment}_vpc_flow_logs` → テーブル `vpc_flow_logs` を選択
+
+```sql
+-- 直近1日の REJECT トップ10（不審な着信の洗い出し）
+SELECT srcaddr, dstport, count(*) AS cnt
+FROM vpc_flow_logs
+WHERE date >= date_format(current_date - interval '1' day, '%Y/%m/%d')
+  AND action = 'REJECT'
+GROUP BY srcaddr, dstport
+ORDER BY cnt DESC LIMIT 10;
+
+-- 通信量トップ（NAT料金が膨らんだときの犯人探し）
+SELECT srcaddr, dstaddr, sum(bytes)/1024/1024 AS mb
+FROM vpc_flow_logs
+WHERE date = date_format(current_date, '%Y/%m/%d')
+GROUP BY srcaddr, dstaddr
+ORDER BY mb DESC LIMIT 20;
+```
+
+### ALBアクセスログ
+
+ALBへのリクエスト（レイテンシ・ステータスコード・URL等）をS3へ記録しています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-alb-logs` に切替える
+3. データベース `{app_name}_{environment}_alb_logs` → テーブル `alb_access_logs` を選択
+
+```sql
+-- 直近1日のアクセスログ（新しい順）
+SELECT time, elb_status_code, request_verb, request_url, target_processing_time
+FROM alb_access_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+ORDER BY time DESC LIMIT 10;
+
+-- レスポンスが遅いリクエストトップ10（パフォーマンス調査）
+SELECT request_url, avg(target_processing_time) AS avg_sec, count(*) AS cnt
+FROM alb_access_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+  AND target_processing_time > 0
+GROUP BY request_url
+ORDER BY avg_sec DESC LIMIT 10;
+```
+
+### CloudFrontアクセスログ
+
+CloudFrontへの全リクエスト（メソッド・ステータス・レイテンシ・エッジロケーション等）をS3へ記録しています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-cloudfront-logs` に切替える
+3. データベース `{app_name}_{environment}_cloudfront_logs` → テーブル `cloudfront_access_logs` を選択
+
+```sql
+-- 直近1日の 4xx/5xx エラートップ10
+SELECT cs_uri_stem, sc_status, count(*) AS cnt
+FROM cloudfront_access_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+  AND sc_status >= 400
+GROUP BY cs_uri_stem, sc_status
+ORDER BY cnt DESC LIMIT 10;
+
+-- レスポンスが遅いリクエストトップ10（パフォーマンス調査）
+SELECT cs_uri_stem, avg(time_taken) AS avg_sec, count(*) AS cnt
+FROM cloudfront_access_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+GROUP BY cs_uri_stem
+ORDER BY avg_sec DESC LIMIT 10;
+```
+
+> **パーティション指定の注意点**
+> - `day` は必ず指定してください。省略すると過去1年分（365日 × 24時間）を全スキャンします。
+> - `hour` を追加すると1時間分のみに絞れます（例: `AND hour = '13'`）。
+> - `hour` はパーティションキーが **string 型**のため、整数ではなくクォートした文字列で指定します。
+> - `sc_range_start` / `sc_range_end` はRangeリクエスト以外では常に NULL になります（正常）。
+
+### WAFログ
+
+CloudFront WAF v2 の判定結果（ALLOW / BLOCK / COUNT）をS3へ記録しています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-waf-logs` に切替える
+3. データベース `{app_name}_{environment}_waf_logs` → テーブル `waf_logs` を選択
+
+```sql
+-- 直近1日のブロックトップ10（不審なIPの特定）
+SELECT httprequest.clientip, httprequest.uri, count(*) AS cnt
+FROM waf_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+  AND action = 'BLOCK'
+GROUP BY httprequest.clientip, httprequest.uri
+ORDER BY cnt DESC LIMIT 10;
+
+-- ブロック原因ルールの内訳
+SELECT terminatingruleid, count(*) AS cnt
+FROM waf_logs
+WHERE day = date_format(current_date, '%Y/%m/%d')
+  AND action = 'BLOCK'
+GROUP BY terminatingruleid
+ORDER BY cnt DESC;
+```
+
+### ECSコンテナログ
+
+ECSアプリコンテナのログ（FireLens / Fluent Bit 経由）をS3へ記録しています。ヘルスチェックのログは除外されています。
+
+**クエリ手順**
+
+1. Athena コンソールを開く
+2. ワークグループを `{app-name}-{environment}-ecs-logs` に切替える
+3. データベース `{app_name}_{environment}_ecs_logs` → テーブル `ecs_logs` を選択
+
+```sql
+-- 特定日のログを表示
+SELECT log, container_name, source
+FROM ecs_logs
+WHERE date = '2026/05/17'
+LIMIT 50;
+
+-- エラーログの抽出
+SELECT log, container_name
+FROM ecs_logs
+WHERE date = date_format(current_date, '%Y/%m/%d')
+  AND lower(log) LIKE '%error%'
+LIMIT 50;
+```
+
+### S3保管ポリシー（共通）
+
+VPCフローログ・ALBアクセスログ・CloudFrontアクセスログ・WAFログ・ECSコンテナログ共通のライフサイクルポリシーです。
+
+| 期間 | ストレージクラス | Athenaクエリ |
+|---|---|---|
+| 0〜30日 | Standard | 可 |
+| 31〜365日 | Standard-IA | 可（コスト約60%減） |
+| 365日以降 | Glacier | 不可（保管のみ） |
+
+> Athenaクエリ結果は7日後に自動削除されます（`alb.tf` の `athena_results` バケットライフサイクル設定）。
+
+---
+
 ## FireLens カスタムイメージのビルド＆デプロイ
 
 ECSのログルーター（Fluent Bit）はカスタムイメージを使用しています。
