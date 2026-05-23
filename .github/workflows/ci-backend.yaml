@@ -1,0 +1,77 @@
+name: CI - Backend (Trivy + ECR scan)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BACKEND_DIR: backend/sandbox-backend
+  IMAGE_NAME: sandbox-backend:ci-${{ github.sha }}
+
+jobs:
+  trivy-fs:
+    name: Trivy fs scan (deps + secrets)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trivy vulnerability scan (yarn.lock)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ env.BACKEND_DIR }}
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy secret scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ env.BACKEND_DIR }}
+          scanners: secret
+          severity: CRITICAL,HIGH,MEDIUM
+          exit-code: '1'
+          format: table
+
+  trivy-image:
+    name: Trivy image scan (Docker build, no push)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (load to local daemon)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.BACKEND_DIR }}
+          file: ${{ env.BACKEND_DIR }}/Dockerfile
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}
+          scanners: vuln
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
