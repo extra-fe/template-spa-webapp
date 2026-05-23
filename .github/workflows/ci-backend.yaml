@@ -1,4 +1,4 @@
-name: CI - Backend (Trivy + ECR scan)
+name: CI - Backend (Trivy scan)
 
 on:
   pull_request:
