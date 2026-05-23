@@ -325,6 +325,26 @@ Build (CodeBuild)
 | SPAクライアント | authorization_code, implicit, refresh_token |
 | リソースサーバー | APIオーディエンス定義 |
 
+### 3.13 自動起動・停止 (EventBridge Scheduler + Step Functions)
+
+開発コスト削減のため、EventBridge Scheduler + Step Functions でリソースを自動制御する。
+
+| スケジュール | 時刻（JST） | 対象 | デフォルト |
+|---|---|---|---|
+| Auto-stop | 毎日 13:00 | ECS（タスク数→0）→ Aurora 停止 → Bastion 停止 | **有効** |
+| Auto-start | 土日 5:00 | Bastion 起動 → Aurora 起動（12分待機）→ ECS（タスク数→1） | 無効 |
+
+> Auto-start はデフォルト無効。平日も自動起動したい場合は AWS コンソール（EventBridge Scheduler）または Terraform の `state` を `"ENABLED"` に変更する。
+
+**手動起動・停止**
+
+Step Functions コンソールから対象のステートマシンを選択し「実行を開始」する。
+
+| ステートマシン名 | 操作 |
+|---|---|
+| `exec-auto-stop-{app-name}-{environment}` | 停止 |
+| `exec-auto-start-{app-name}-{environment}` | 起動 |
+
 ---
 
 ## 4. Azure インフラストラクチャ
