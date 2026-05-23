@@ -33,8 +33,9 @@ RUN yarn build
 ########## Runtime Stage ##########
 FROM public.ecr.aws/docker/library/node:22-bookworm-slim
 
-# OpenSSL と CA を追加（サイズ削減のため後片付け）
+# OSパッケージをアップグレードし、OpenSSL と CA を追加（サイズ削減のため後片付け）
 RUN apt-get update -y \
+ && apt-get upgrade -y \
  && apt-get install -y --no-install-recommends openssl libssl3 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
