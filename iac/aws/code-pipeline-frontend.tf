@@ -13,6 +13,18 @@ resource "aws_s3_bucket_public_access_block" "artifact" {
   restrict_public_buckets = true
 }
 
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifact" {
+  bucket = aws_s3_bucket.artifact.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 # フロントエンド用CodePipeline: GitHub Push → CodeBuild(Vite build → S3アップロード → CFインバリデーション)
 resource "aws_codepipeline" "frontend" {
   execution_mode = "QUEUED"

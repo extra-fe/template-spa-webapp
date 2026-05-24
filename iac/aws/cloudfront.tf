@@ -41,9 +41,10 @@ resource "aws_cloudfront_distribution" "cdn" {
       "GET",
       "HEAD",
     ]
-    compress               = true
-    target_origin_id       = local.frontend_origin_id
-    viewer_protocol_policy = "redirect-to-https"
+    compress                   = true
+    target_origin_id           = local.frontend_origin_id
+    viewer_protocol_policy     = "redirect-to-https"
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.spa.id
   }
 
   # オリジン1: フロント配信用 S3 バケット
@@ -66,24 +67,26 @@ resource "aws_cloudfront_distribution" "cdn" {
   # /index.html 用ビヘイビア: キャッシュ無効(SPA再デプロイ時に常に最新を返すため)
   # priority が低い数値ほど優先されるため、/api/* より先に評価される
   ordered_cache_behavior {
-    path_pattern           = "/index.html"
-    cache_policy_id        = data.aws_cloudfront_cache_policy.disabled.id
-    target_origin_id       = local.frontend_origin_id
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
+    path_pattern               = "/index.html"
+    cache_policy_id            = data.aws_cloudfront_cache_policy.disabled.id
+    target_origin_id           = local.frontend_origin_id
+    viewer_protocol_policy     = "redirect-to-https"
+    allowed_methods            = ["GET", "HEAD", "OPTIONS"]
+    cached_methods             = ["GET", "HEAD"]
+    compress                   = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.spa.id
   }
 
   # /api/* 用追加ビヘイビア: キャッシュ無効・全ヘッダ転送でAPI挙動を素通し
   ordered_cache_behavior {
-    path_pattern             = var.api-base-path
-    cache_policy_id          = data.aws_cloudfront_cache_policy.disabled.id
-    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer.id
-    target_origin_id         = local.backend_origin_id
-    viewer_protocol_policy   = "allow-all"
-    allowed_methods          = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
-    cached_methods           = ["GET", "HEAD"]
+    path_pattern               = var.api-base-path
+    cache_policy_id            = data.aws_cloudfront_cache_policy.disabled.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.all_viewer.id
+    target_origin_id           = local.backend_origin_id
+    viewer_protocol_policy     = "https-only"
+    allowed_methods            = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
+    cached_methods             = ["GET", "HEAD"]
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.api.id
   }
 
   restrictions {

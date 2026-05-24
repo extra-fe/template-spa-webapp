@@ -15,6 +15,18 @@ resource "aws_s3_bucket_public_access_block" "vpc_flow_log" {
   restrict_public_buckets = true
 }
 
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "vpc_flow_log" {
+  bucket = aws_s3_bucket.vpc_flow_log.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 # バージョニング無効化(本テンプレートの他バケットと方針を揃える)
 resource "aws_s3_bucket_versioning" "vpc_flow_log" {
   bucket = aws_s3_bucket.vpc_flow_log.bucket

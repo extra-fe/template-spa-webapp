@@ -90,6 +90,76 @@ resource "aws_wafv2_web_acl" "cloudfront" {
     }
   }
 
+  # ルール3.5: 匿名IPリスト (Tor/VPN/匿名Proxy)
+  # HostingProviderIPList (AWS/GCP等のデータセンタIP) のみ Count 化して
+  # 第三者脆弱性診断 (多くがクラウド由来) がブロックされないようにする
+  rule {
+    name     = "AWS-AWSManagedRulesAnonymousIpList"
+    priority = 35
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesAnonymousIpList"
+        vendor_name = "AWS"
+
+        rule_action_override {
+          name = "HostingProviderIPList"
+          action_to_use {
+            count {}
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesAnonymousIpList"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # ルール4: /api/* 配下のレート制限 (5分間で2000リクエスト/IP超過時にブロック)
+  # 第三者脆弱性診断では診断元IPを別途 allowlist する想定 (本ルールより上位priorityでallow)
+  rule {
+    name     = "RateLimitApi"
+    priority = 40
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+
+        scope_down_statement {
+          byte_match_statement {
+            search_string         = "/api/"
+            positional_constraint = "STARTS_WITH"
+            field_to_match {
+              uri_path {}
+            }
+            text_transformation {
+              priority = 0
+              type     = "NONE"
+            }
+          }
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "RateLimitApi"
+      sampled_requests_enabled   = true
+    }
+  }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
     metric_name                = "${var.app-name}-${var.environment}-cf-acl"
@@ -116,6 +186,19 @@ resource "aws_s3_bucket_public_access_block" "waf_logs" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "waf_logs" {
+  provider = aws.us_east_1
+  bucket   = aws_s3_bucket.waf_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
 }
 
 # Standard → Standard-IA(31日) → Glacier(365日) でALB/ECS/CFログと同じ階層化
