@@ -86,16 +86,18 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 ```bash
 # Backend
 cd backend/sandbox-backend
+cp .env.example .env    # 実値を編集
 yarn install
 yarn start:dev          # http://localhost:3000
 
 # Frontend
 cd frontend/sandbox-frontend
+cp .env.example .env    # 実値を編集
 yarn install
 yarn dev                # http://localhost:5173
 ```
 
-バックエンドは `AUTH_ENABLED=false` でモック認証モードで起動できます。
+バックエンドは `.env` で `AUTH_ENABLED=false` を設定するとモック認証モードで起動できます（Auth0 不要）。
 
 ### インフラデプロイ
 
