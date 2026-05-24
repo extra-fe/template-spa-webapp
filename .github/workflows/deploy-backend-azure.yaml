@@ -6,12 +6,13 @@
         environment:
           description: 'Deploy target environment (GitHub Environments)'
           required: true
-          default: 'dev'
+          default: 'main'
           type: choice
           options:
-            - dev
-            - staging
-            - prod
+            - main
+          # 別環境を増やす場合: ここに staging / prod 等を追加し、
+          # iac/azure 側でも azuread_application_federated_identity_credential を
+          # 該当 environment 名で追加 (subject = "repo:OWNER/REPO:environment:<name>")
 
   permissions:
     id-token: write
