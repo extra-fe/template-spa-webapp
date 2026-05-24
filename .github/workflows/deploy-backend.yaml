@@ -10,6 +10,7 @@
   jobs:
     build-and-deploy:
       runs-on: ubuntu-latest
+      timeout-minutes: 30
   
       steps:
       - name: Checkout repository
@@ -28,6 +29,10 @@
       - name: Set Environment Variables
         run: |
           KEY_VAULT_NAME=$(az keyvault list --query "[?ends_with(name, '${{ env.BRANCH_NAME }}')].name" -o tsv)
+          if [ -z "${KEY_VAULT_NAME}" ]; then
+            echo "Error: Key Vault not found for branch '${{ env.BRANCH_NAME }}'" >&2
+            exit 1
+          fi
           echo "KEY_VAULT_NAME=${KEY_VAULT_NAME}"
           echo "ACR-NAME=$(az keyvault secret show --name "ACR-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"  >> $GITHUB_ENV
           echo "IMAGE-NAME=$(az keyvault secret show --name "IMAGE-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
