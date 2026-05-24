@@ -11,13 +11,15 @@ async function bootstrap() {
   Logger.overrideLogger([logLevel]);
 
   // HTTP セキュリティヘッダ (helmet): CSP/X-Frame-Options/X-Content-Type-Options 等を一括付与
-  // CloudFront 側のレスポンスヘッダポリシーと二重防御。HSTS は CloudFront と合わせて 1 年に揃える
+  // CloudFront 側のレスポンスヘッダポリシーと二重防御。
+  // HSTS は本番のみ有効化 (CloudFront と合わせて 1 年)。ローカル開発で
+  // http://localhost にうっかり HSTS が残るリスクを避けるため dev では無効
   app.use(
     helmet({
-      hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-      },
+      hsts:
+        process.env.NODE_ENV === 'production'
+          ? { maxAge: 31536000, includeSubDomains: true }
+          : false,
     }),
   );
 
