@@ -37,6 +37,13 @@ resource "azurerm_network_interface" "bastion_vm" {
   }
 }
 
+# Bastion NIC に NSG を付与
+# これが無いと NSG リソースを作っても効かず、 SSH (22) が全世界に開放されてしまう
+resource "azurerm_network_interface_security_group_association" "bastion_vm" {
+  network_interface_id      = azurerm_network_interface.bastion_vm.id
+  network_security_group_id = azurerm_network_security_group.bastion_vm.id
+}
+
 data "azurerm_key_vault" "vault" {
   name                = var.public-key-vault-name
   resource_group_name = var.public-key-vault-rg-name
