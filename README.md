@@ -31,7 +31,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 |---|---|
 | Frontend | React 19 / TypeScript / Vite / Auth0 |
 | Backend | NestJS 11 / Prisma / PostgreSQL / OpenTelemetry |
-| IaC | Terraform 1.13 |
+| IaC | Terraform 1.13.5 |
 | CI/CD (AWS) | CodePipeline + CodeBuild |
 | CI/CD (Azure) | GitHub Actions (OIDC) |
 | セキュリティスキャン | GitHub Actions (Trivy) |

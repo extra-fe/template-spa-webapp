@@ -1,5 +1,5 @@
 ########## Build Stage ##########
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS builder
+FROM public.ecr.aws/docker/library/node:22.15.0-bookworm-slim AS builder
 
 WORKDIR /usr/src/app
 
@@ -31,7 +31,7 @@ RUN yarn build
 
 
 ########## Runtime Stage ##########
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim
+FROM public.ecr.aws/docker/library/node:22.15.0-bookworm-slim
 
 # OSパッケージをアップグレードし、OpenSSL と CA を追加（サイズ削減のため後片付け）
 RUN apt-get update -y \
