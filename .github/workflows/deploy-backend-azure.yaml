@@ -12,49 +12,39 @@
       runs-on: ubuntu-latest
       timeout-minutes: 30
 
+      env:
+        # Key Vault network_acls 有効化に伴い、 KV 参照は廃止し repository variables を使用。
+        # 値は `terraform output github_actions_variables_json` で確認できる
+        ACR_NAME:                   ${{ vars.AZURE_ACR_NAME }}
+        IMAGE_NAME:                 ${{ vars.AZURE_BACKEND_IMAGE_NAME }}
+        BACKEND_WORKING_DIRECTORY:  ${{ vars.AZURE_BACKEND_WORKING_DIRECTORY }}
+        BACKEND_CONTAINER_APP_NAME: ${{ vars.AZURE_BACKEND_CONTAINER_APP_NAME }}
+        RESOURCE_GROUP_NAME:        ${{ vars.AZURE_RESOURCE_GROUP }}
+
       steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get branch name
-        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
       - name: Login to Azure using OIDC
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Set Environment Variables
-        run: |
-          KEY_VAULT_NAME=$(az keyvault list --query "[?ends_with(name, '${{ env.BRANCH_NAME }}')].name" -o tsv)
-          if [ -z "${KEY_VAULT_NAME}" ]; then
-            echo "Error: Key Vault not found for branch '${{ env.BRANCH_NAME }}'" >&2
-            exit 1
-          fi
-          echo "KEY_VAULT_NAME=${KEY_VAULT_NAME}"
-          echo "ACR-NAME=$(az keyvault secret show --name "ACR-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"  >> $GITHUB_ENV
-          echo "IMAGE-NAME=$(az keyvault secret show --name "IMAGE-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "BACKEND-WORKING-DIRECTORY=$(az keyvault secret show --name "BACKEND-WORKING-DIRECTORY" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "BACKEND-CONTAINER-APP-NAME=$(az keyvault secret show --name "BACKEND-CONTAINER-APP-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "RESOURCE-GROUP-NAME=$(az keyvault secret show --name "RESOURCE-GROUP-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-
-
       - name: Docker login to ACR
-        run: |
-          az acr login --name ${{ env.ACR-NAME }}
+        run: az acr login --name ${{ env.ACR_NAME }}
 
       - name: Build and push Docker image to ACR
         run: |
-          cd .${{ env.BACKEND-WORKING-DIRECTORY }}
+          cd .${{ env.BACKEND_WORKING_DIRECTORY }}
           docker build \
-            -t ${{ env.ACR-NAME }}.azurecr.io/${{ env.IMAGE-NAME }}:${{ github.sha }} \
-            -t ${{ env.ACR-NAME }}.azurecr.io/${{ env.IMAGE-NAME }}:latest \
+            -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -t ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest \
             .
 
-          docker push ${{ env.ACR-NAME }}.azurecr.io/${{ env.IMAGE-NAME }}:${{ github.sha }}
-          docker push ${{ env.ACR-NAME }}.azurecr.io/${{ env.IMAGE-NAME }}:latest
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
       - name: Deploy to Container Apps
         # az containerapp update でイメージタグを差し替えると新しい revision が自動作成され、
@@ -62,6 +52,6 @@
         # (Container Apps が rolling 配置を行うため明示的な restart 不要)
         run: |
           az containerapp update \
-            --name ${{ env.BACKEND-CONTAINER-APP-NAME }} \
-            --resource-group ${{ env.RESOURCE-GROUP-NAME }} \
-            --image ${{ env.ACR-NAME }}.azurecr.io/${{ env.IMAGE-NAME }}:${{ github.sha }}
+            --name ${{ env.BACKEND_CONTAINER_APP_NAME }} \
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --image ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
