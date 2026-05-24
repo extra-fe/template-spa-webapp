@@ -19,6 +19,12 @@ resource "azurerm_key_vault" "vault" {
   #    (c) ワークフロー側で Key Vault 参照する代わりに GitHub Secrets に直接値を入れる
   # ⚠ Key Vault の ip_rules も /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
   #   (Storage Account と同じ制約。 NSG とはここが違う)
+  #
+  # 補足: 過去に Container Apps の secret 取得を通すため env の static_ip_address を
+  # 追加する案を試したが、 CA platform が VNet egress 外の Microsoft 内部経路で fetch する
+  # 動作のため allowlist が効かなかった。
+  # 現在は Container App 側で KV を参照せず CA secret store に値を直接持たせる構成にしたため、
+  # ここでは local PC + 任意の追加 IP のみで OK。
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
