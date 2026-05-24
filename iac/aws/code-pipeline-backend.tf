@@ -223,19 +223,20 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
           ]
         },
         {
-          # ListClusters / ListTaskDefinitions はAWS仕様上 Resource = * が必須
+          # ListClusters / ListTaskDefinitions / RegisterTaskDefinition はAWS仕様上 Resource = * が必須
+          # RegisterTaskDefinition: 新規リビジョン登録時は ARN が未確定のため resource-level 制限不可
           Action = [
             "ecs:ListClusters",
             "ecs:ListTaskDefinitions",
+            "ecs:RegisterTaskDefinition",
           ]
           Effect   = "Allow"
           Resource = ["*"]
         },
         {
-          # タスク定義の参照・登録はこのプロジェクトのファミリーのみに限定
+          # タスク定義の参照はこのプロジェクトのファミリーのみに限定
           Action = [
             "ecs:DescribeTaskDefinition",
-            "ecs:RegisterTaskDefinition",
           ]
           Effect = "Allow"
           Resource = [
