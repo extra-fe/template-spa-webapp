@@ -5,6 +5,9 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+  },
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -82,6 +85,7 @@
     "typescript-eslint": "^8.46.3"
   },
   "resolutions": {
+    "//": "@opentelemetry/otlp-transformer 経由で protobufjs 古バージョン (< 7.2.4) が引き込まれ Trivy HIGH 検出。^8.4.2 に固定して回避 (CVE-2023-36665 prototype pollution)。upstream が 8.x 以上を要求するようになったら削除可。",
     "**/@opentelemetry/otlp-transformer/protobufjs": "^8.4.2"
   },
   "jest": {

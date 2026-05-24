@@ -15,6 +15,7 @@ jobs:
   trivy-scan:
     name: Trivy fs scan (deps + secrets)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
@@ -68,6 +69,7 @@ jobs:
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [trivy-scan]
     if: always() && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 

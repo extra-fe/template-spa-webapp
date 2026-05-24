@@ -5,6 +5,14 @@
 .claude/settings.local.json
 .claude/projects/
 
+# ===== シークレット =====
+.env
+.env.*
+!.env.example
+terraform.tfvars
+*.tfvars
+!*.tfvars.example
+
 # ===== OS / エディタ =====
 .DS_Store
 Thumbs.db

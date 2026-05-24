@@ -19,6 +19,7 @@ jobs:
   trivy-fs:
     name: Trivy fs scan (deps + secrets)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
@@ -72,6 +73,7 @@ jobs:
   trivy-image:
     name: Trivy image scan (Docker build, no push)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
@@ -129,6 +131,7 @@ jobs:
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     needs: [trivy-fs, trivy-image]
     if: always() && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 
