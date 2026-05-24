@@ -202,7 +202,7 @@ resource "aws_scheduler_schedule" "auto_stop" {
   name       = "auto-stop-${var.app-name}-${var.environment}"
   group_name = "default"
 
-  schedule_expression          = "cron(0 13 * * ? *)"
+  schedule_expression          = "cron(0 21 * * ? *)"
   schedule_expression_timezone = "Asia/Tokyo"
 
   flexible_time_window {
