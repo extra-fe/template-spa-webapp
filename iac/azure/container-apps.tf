@@ -25,17 +25,30 @@ resource "azurerm_role_assignment" "container_app_acr_pull" {
   principal_id         = azurerm_user_assigned_identity.container_app.principal_id
 }
 
-# 環境名に random_string suffix を付与している理由:
+# 環境専用の random_string
+# Storage Account / ACR / Key Vault が共有している random_string.random とは分離している。
+# 理由: 環境が ScheduledForDelete でスタックした際、 random_string.random を taint すると
+# Storage 等の全リソース名まで巻き込んで destroy + recreate が走ってしまうため、
+# 環境名サフィックスだけ単独で再生成できるようにする
+resource "random_string" "container_apps_env" {
+  length  = 4
+  upper   = false
+  lower   = true
+  numeric = true
+  special = false
+}
+
+# 環境名に random suffix を付与している理由:
 # Container Apps 環境は削除に長時間 (数時間〜) かかることがあり、 削除中 (ScheduledForDelete) は
 # 同名で再作成できない。 suffix を付けておくと、 万一スタックしても他のリソース名を変えずに
 # Terraform の差し替えで新環境を作れる
 resource "azurerm_container_app_environment" "env" {
-  name                       = "${var.app-name}-${var.environment}-cae-${random_string.random.result}"
+  name                       = "${var.app-name}-${var.environment}-cae-${random_string.container_apps_env.result}"
   location                   = azurerm_resource_group.rg.location
   resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.app_logs.id
 
-  infrastructure_subnet_id       = azurerm_subnet.container_apps.id
+  infrastructure_subnet_id       = azurerm_subnet.container_apps_v2.id
   internal_load_balancer_enabled = false # Front Door からアクセスするため public LB
 
   workload_profile {
