@@ -126,7 +126,7 @@ resource "azurerm_container_app" "app" {
       }
       env {
         name  = "AUTH_ENABLED"
-        value = "false"
+        value = "true"
       }
       env {
         name        = "DATABASE_URL"
