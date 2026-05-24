@@ -2,6 +2,16 @@
 
   on:
     workflow_dispatch:
+      inputs:
+        environment:
+          description: 'Deploy target environment (GitHub Environments)'
+          required: true
+          default: 'dev'
+          type: choice
+          options:
+            - dev
+            - staging
+            - prod
 
   permissions:
     id-token: write
@@ -11,9 +21,13 @@
     build-and-deploy:
       runs-on: ubuntu-latest
       timeout-minutes: 30
+      # environment: GitHub Environments を指定すると、 vars/secrets が
+      # repository-level → 該当 environment-level の順で解決される。
+      # 各環境ごとに値を分けて持てる (dev: rg-sandbox-dev, prod: rg-sandbox-prod, 等)。
+      environment: ${{ inputs.environment }}
 
       env:
-        # Key Vault network_acls 有効化に伴い、 KV 参照は廃止し repository variables を使用。
+        # KV 参照は廃止し、 GitHub Environments の Variables / Secrets を使用。
         # 値は `terraform output github_actions_variables_json` で確認できる
         ACR_NAME:                   ${{ vars.AZURE_ACR_NAME }}
         IMAGE_NAME:                 ${{ vars.AZURE_BACKEND_IMAGE_NAME }}
