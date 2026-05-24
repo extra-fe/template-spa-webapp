@@ -151,22 +151,13 @@ resource "azurerm_container_app" "app" {
   }
 }
 
-# Container App 用の診断ログ設定 (App Service の HTTP/Console/AppLogs 相当)
-# Container Apps では Console / System のログカテゴリが利用可能
-resource "azurerm_monitor_diagnostic_setting" "container_app" {
-  name                       = "${var.app-name}-${var.environment}-containerapp-diag"
-  target_resource_id         = azurerm_container_app.app.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.app_logs.id
-
-  enabled_log {
-    category = "ContainerAppConsoleLogs"
-  }
-
-  enabled_log {
-    category = "ContainerAppSystemLogs"
-  }
-
-  enabled_metric {
-    category = "AllMetrics"
-  }
-}
+# Container Apps のコンソール/システムログ:
+# 個別 Container App リソースには ContainerAppConsoleLogs / ContainerAppSystemLogs カテゴリを
+# 紐付けられない仕様 (環境 = managedEnvironments のみ対応)。
+# 本テンプレートでは azurerm_container_app_environment.env に log_analytics_workspace_id を
+# 設定済みのため、 環境経由で自動的に Log Analytics の
+# ContainerAppConsoleLogs_CL / ContainerAppSystemLogs_CL テーブルへログが流れる。
+# したがって Container App 単体への diagnostic_setting は不要 (重複させると二重課金)。
+#
+# メトリックは Azure Monitor の標準メトリックストアへ自動送信され、 monitor_alerts.tf の
+# azurerm_monitor_metric_alert から直接参照可能。
