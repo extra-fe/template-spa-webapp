@@ -19,11 +19,20 @@ resource "azurerm_key_vault" "vault" {
   #    (c) ワークフロー側で Key Vault 参照する代わりに GitHub Secrets に直接値を入れる
   # ⚠ Key Vault の ip_rules も /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
   #   (Storage Account と同じ制約。 NSG とはここが違う)
+  #
+  # ⚠ bypass = "AzureServices" は Container Apps の secret 取得には効かない:
+  #   Key Vault の "trusted services" 一覧に Container Apps が含まれておらず、
+  #   UAMI 経由の secret fetch は通常のネットワーク経路で Deny される。
+  #   → Container Apps 環境の outbound 固定 IP (static_ip_address) を ip_rules に明示追加する
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
     ip_rules = [
-      for ip in concat(var.local-pc-ip-addresses, var.key-vault-additional-ip-rules) :
+      for ip in concat(
+        var.local-pc-ip-addresses,
+        var.key-vault-additional-ip-rules,
+        [azurerm_container_app_environment.env.static_ip_address],
+      ) :
       trimsuffix(ip, "/32")
     ]
   }
