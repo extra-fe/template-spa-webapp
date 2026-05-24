@@ -7,20 +7,23 @@ resource "azurerm_virtual_network" "vnet" {
   ]
 }
 
-resource "azurerm_subnet" "app_service" {
-  name                 = "${var.app-name}-${var.environment}-appservice"
+# Container Apps 環境用サブネット
+# - Workload Profiles 環境は /27 (32 IPs) 以上が必須
+# - Microsoft.App/environments に delegation
+resource "azurerm_subnet" "container_apps" {
+  name                 = "${var.app-name}-${var.environment}-containerapps"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes = [
-    "10.0.0.0/29"
+    "10.0.0.0/27"
   ]
   delegation {
     name = "delegation"
     service_delegation {
       actions = [
-        "Microsoft.Network/virtualNetworks/subnets/action",
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
       ]
-      name = "Microsoft.Web/serverFarms"
+      name = "Microsoft.App/environments"
     }
   }
 }
@@ -30,7 +33,7 @@ resource "azurerm_subnet" "db" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes = [
-    "10.0.0.8/29"
+    "10.0.0.32/29"
   ]
   service_endpoints = [
     "Microsoft.Storage",
@@ -52,6 +55,6 @@ resource "azurerm_subnet" "default" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes = [
-    "10.0.0.16/28"
+    "10.0.0.48/28"
   ]
 }

@@ -196,9 +196,9 @@ resource "azurerm_key_vault_secret" "backend_working_directory" {
 }
 
 
-resource "azurerm_key_vault_secret" "backend_app_service_name" {
-  name         = "BACKEND-APP-SERVICE-NAME"
-  value        = azurerm_linux_web_app.app.name
+resource "azurerm_key_vault_secret" "backend_container_app_name" {
+  name         = "BACKEND-CONTAINER-APP-NAME"
+  value        = azurerm_container_app.app.name
   key_vault_id = azurerm_key_vault.vault.id
   depends_on = [
     azurerm_key_vault_access_policy.terraform_user
@@ -214,10 +214,13 @@ resource "azurerm_key_vault_secret" "postgre_flexible_server_connection_string" 
   ]
 }
 
-resource "azurerm_key_vault_access_policy" "app_service_identity" {
+# Container App の UAMI に Key Vault Secret 読み取り権限を付与
+# UAMI を Container App より先に作成しておくことで、Container App 作成時には
+# 既に secret 参照に必要な権限が揃っている (循環依存回避)
+resource "azurerm_key_vault_access_policy" "container_app_identity" {
   key_vault_id = azurerm_key_vault.vault.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_linux_web_app.app.identity[0].principal_id
+  object_id    = azurerm_user_assigned_identity.container_app.principal_id
 
   secret_permissions = ["Get"]
 }

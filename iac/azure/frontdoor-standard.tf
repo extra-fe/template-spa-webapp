@@ -85,15 +85,14 @@ resource "azurerm_cdn_frontdoor_origin_group" "api" {
 
 resource "azurerm_cdn_frontdoor_origin" "api" {
   cdn_frontdoor_origin_group_id  = azurerm_cdn_frontdoor_origin_group.api.id
-  certificate_name_check_enabled = false
+  certificate_name_check_enabled = true
   enabled                        = true
-  host_name                      = azurerm_linux_web_app.app.default_hostname
-  #http_port                      = 80
-  https_port         = 443
-  name               = "${var.app-name}-${var.environment}-api"
-  origin_host_header = azurerm_linux_web_app.app.default_hostname
-  priority           = 1
-  weight             = 1000
+  host_name                      = azurerm_container_app.app.ingress[0].fqdn
+  https_port                     = 443
+  name                           = "${var.app-name}-${var.environment}-api"
+  origin_host_header             = azurerm_container_app.app.ingress[0].fqdn
+  priority                       = 1
+  weight                         = 1000
 }
 
 resource "azurerm_cdn_frontdoor_route" "api" {
