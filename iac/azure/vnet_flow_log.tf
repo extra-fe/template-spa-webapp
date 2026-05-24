@@ -3,12 +3,11 @@
 # - 分析用に Traffic Analytics で Log Analytics Workspace にも集約 (Athena相当のKQL分析の入口)
 
 # Network Watcher
-# 既定では Azure が NetworkWatcherRG/NetworkWatcher_<region> を自動作成するが、
-# 本テンプレートでは自前のRGに明示的に作成して構成を自己完結させる(複数併存可)
-resource "azurerm_network_watcher" "nw" {
-  name                = "${var.app-name}-${var.environment}-nw"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+# Azure は subscription × region につき 1 個までしか Network Watcher を作れないため、
+# 既定で auto-create される NetworkWatcherRG/NetworkWatcher_<region> を data source で参照する
+data "azurerm_network_watcher" "default" {
+  name                = "NetworkWatcher_${var.location}"
+  resource_group_name = "NetworkWatcherRG"
 }
 
 # VNet Flow Log (旧 NSG Flow Log の後継)
@@ -16,8 +15,8 @@ resource "azurerm_network_watcher" "nw" {
 # - retention は Storage 側のライフサイクル(storage-account-logs.tf)と二重管理しない
 resource "azurerm_network_watcher_flow_log" "vnet" {
   name                 = "${var.app-name}-${var.environment}-vnet-flow-log"
-  network_watcher_name = azurerm_network_watcher.nw.name
-  resource_group_name  = azurerm_network_watcher.nw.resource_group_name
+  network_watcher_name = data.azurerm_network_watcher.default.name
+  resource_group_name  = data.azurerm_network_watcher.default.resource_group_name
   location             = azurerm_resource_group.rg.location
 
   target_resource_id = azurerm_virtual_network.vnet.id
