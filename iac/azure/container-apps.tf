@@ -55,6 +55,20 @@ resource "azurerm_container_app_environment" "env" {
     name                  = "Consumption"
     workload_profile_type = "Consumption"
   }
+
+  # azurerm provider の Container Apps Env (Workload Profiles + VNet) の既知挙動への対策:
+  # - infrastructure_resource_group_name: Azure が裏で自動生成する
+  #   ME_<env>_<rg>_<region> 形式の "インフラ用 RG" (内部の LB/NSG 等を入れる)。
+  #   config 未指定だと state の値との diff が "forces replacement" を引き起こす。
+  # - workload_profile: Consumption type では Azure が maximum_count/minimum_count を 0 に
+  #   デフォルト設定するが、 config 未指定だと state との diff になる。
+  # → 両方とも Azure 任せでよい属性なので ignore_changes で無視 (毎回 env 再作成を回避)
+  lifecycle {
+    ignore_changes = [
+      infrastructure_resource_group_name,
+      workload_profile,
+    ]
+  }
 }
 
 # Container App 本体
