@@ -69,33 +69,38 @@ resource "azurerm_log_analytics_saved_search" "frontdoor_error_paths" {
   KQL
 }
 
-# App Service HTTP ログ: 5xx エラー (直近1h)
+# Container Apps コンソールログ: ERROR レベル抽出 (直近1h)
 # AWS側 ECS ログ (athena_ecs_logs.tf) と同じ "アプリ層の異常検知" 用途
-resource "azurerm_log_analytics_saved_search" "appservice_http_5xx" {
-  name                       = "${var.app-name}-${var.environment}-appservice-http-5xx"
+# Container Apps Environment の log_analytics_workspace_id 経由で
+# 自動的に ContainerAppConsoleLogs_CL テーブルに格納される
+resource "azurerm_log_analytics_saved_search" "containerapp_console_errors" {
+  name                       = "${var.app-name}-${var.environment}-containerapp-console-errors"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.app_logs.id
-  category                   = "AppService"
-  display_name               = "App Service: 5xx エラー一覧 (直近1h)"
+  category                   = "ContainerApp"
+  display_name               = "Container App: コンソールERROR (直近1h)"
   query                      = <<-KQL
-    AppServiceHTTPLogs
+    ContainerAppConsoleLogs_CL
     | where TimeGenerated > ago(1h)
-    | where ScStatus >= 500
-    | project TimeGenerated, CsMethod, CsUriStem, ScStatus, TimeTaken, CIp
+    | where Log_s has_any ("ERROR", "Error", "error")
+    | project TimeGenerated, ContainerAppName_s, ContainerName_s, RevisionName_s, Log_s
     | order by TimeGenerated desc
   KQL
 }
 
-# App Service コンソールログ: ERROR レベル抽出 (直近1h)
-resource "azurerm_log_analytics_saved_search" "appservice_console_errors" {
-  name                       = "${var.app-name}-${var.environment}-appservice-console-errors"
+# Container Apps システムログ: リビジョン作成/起動失敗等のシステムイベント (直近24h)
+resource "azurerm_log_analytics_saved_search" "containerapp_system_events" {
+  name                       = "${var.app-name}-${var.environment}-containerapp-system-events"
   log_analytics_workspace_id = azurerm_log_analytics_workspace.app_logs.id
-  category                   = "AppService"
-  display_name               = "App Service: コンソールERROR (直近1h)"
+  category                   = "ContainerApp"
+  display_name               = "Container App: システムイベント (直近24h)"
   query                      = <<-KQL
-    AppServiceConsoleLogs
-    | where TimeGenerated > ago(1h)
-    | where ResultDescription has_any ("ERROR", "Error", "error")
-    | project TimeGenerated, ResultDescription
+    ContainerAppSystemLogs_CL
+    | where TimeGenerated > ago(24h)
+    | project TimeGenerated, ContainerAppName_s, Reason_s, Type_s, Log_s
     | order by TimeGenerated desc
   KQL
 }
+
+# Container App / Front Door の HTTP 5xx 分析は Front Door 側の AFDAccessLogs を使用
+# (バックエンド単体の HTTP アクセスログは Container Apps 標準では出力されないため、
+# upstream の Front Door ログでカバーする。 別途 azurerm_log_analytics_saved_search.frontdoor_error_paths を参照)
