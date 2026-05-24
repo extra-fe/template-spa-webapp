@@ -20,19 +20,16 @@ resource "azurerm_key_vault" "vault" {
   # ⚠ Key Vault の ip_rules も /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
   #   (Storage Account と同じ制約。 NSG とはここが違う)
   #
-  # ⚠ bypass = "AzureServices" は Container Apps の secret 取得には効かない:
-  #   Key Vault の "trusted services" 一覧に Container Apps が含まれておらず、
-  #   UAMI 経由の secret fetch は通常のネットワーク経路で Deny される。
-  #   → Container Apps 環境の outbound 固定 IP (static_ip_address) を ip_rules に明示追加する
+  # 補足: 過去に Container Apps の secret 取得を通すため env の static_ip_address を
+  # 追加する案を試したが、 CA platform が VNet egress 外の Microsoft 内部経路で fetch する
+  # 動作のため allowlist が効かなかった。
+  # 現在は Container App 側で KV を参照せず CA secret store に値を直接持たせる構成にしたため、
+  # ここでは local PC + 任意の追加 IP のみで OK。
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
     ip_rules = [
-      for ip in concat(
-        var.local-pc-ip-addresses,
-        var.key-vault-additional-ip-rules,
-        [azurerm_container_app_environment.env.static_ip_address],
-      ) :
+      for ip in concat(var.local-pc-ip-addresses, var.key-vault-additional-ip-rules) :
       trimsuffix(ip, "/32")
     ]
   }

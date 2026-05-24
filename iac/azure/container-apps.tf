@@ -80,10 +80,22 @@ resource "azurerm_container_app" "app" {
     identity = azurerm_user_assigned_identity.container_app.id
   }
 
+  # DATABASE-URL は Container Apps 内蔵の secret store に直接格納する。
+  #
+  # 当初は Key Vault 参照 (key_vault_secret_id) を使っていたが、 KV の network_acls を
+  # 有効化すると Container Apps platform からの secret fetch がブロックされる。
+  # Microsoft ドキュメントは環境の static_ip_address を ip_rules に追加することで解決
+  # するとあるが、 実際には CA platform は VNet egress 外の Microsoft 内部経路で fetch
+  # するため allowlist が効かないケースがある。
+  #
+  # 対処として:
+  # - DATABASE-URL は Container Apps secret store に直接埋め込む (azure_database.tf の
+  #   local.database_url を流用)
+  # - KV の DATABASE-URL secret 自体は残置 (key-vault.tf 参照) — 他の用途のために。
+  # - KV network_acls はそのまま維持され、 他の secret (auth0 等) の保護は継続する
   secret {
-    name                = "database-url"
-    key_vault_secret_id = azurerm_key_vault_secret.postgre_flexible_server_connection_string.versionless_id
-    identity            = azurerm_user_assigned_identity.container_app.id
+    name  = "database-url"
+    value = local.database_url
   }
 
   template {
@@ -150,9 +162,9 @@ resource "azurerm_container_app" "app" {
     }
   }
 
-  # KV Access / ACR Pull 権限が先に確立してから Container App を作るための明示的依存
+  # ACR Pull 権限が先に確立してから Container App を作るための明示的依存
+  # (KV Access Policy は不要になった — secret は KV ではなく CA secret store 経由)
   depends_on = [
-    azurerm_key_vault_access_policy.container_app_identity,
     azurerm_role_assignment.container_app_acr_pull,
   ]
 
