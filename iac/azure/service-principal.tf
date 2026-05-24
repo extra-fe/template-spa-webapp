@@ -56,8 +56,8 @@ resource "azurerm_role_assignment" "github_actions_acr_pull" {
   principal_id         = azuread_service_principal.github_actions.object_id
 }
 
-resource "azurerm_role_assignment" "github_actions_app_service_set_container" {
-  scope                = azurerm_linux_web_app.app.id
+resource "azurerm_role_assignment" "github_actions_container_app_contributor" {
+  scope                = azurerm_container_app.app.id
   role_definition_name = "Contributor"
   principal_id         = azuread_service_principal.github_actions.object_id
 }
