@@ -17,10 +17,15 @@ resource "azurerm_key_vault" "vault" {
   #    (a) key-vault-additional-ip-rules に GitHub Actions の IP 範囲を追加 (api.github.com/meta)
   #    (b) self-hosted runner を VNet 内に置く
   #    (c) ワークフロー側で Key Vault 参照する代わりに GitHub Secrets に直接値を入れる
+  # ⚠ Key Vault の ip_rules も /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
+  #   (Storage Account と同じ制約。 NSG とはここが違う)
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
-    ip_rules       = concat(var.local-pc-ip-addresses, var.key-vault-additional-ip-rules)
+    ip_rules = [
+      for ip in concat(var.local-pc-ip-addresses, var.key-vault-additional-ip-rules) :
+      trimsuffix(ip, "/32")
+    ]
   }
 }
 

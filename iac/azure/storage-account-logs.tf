@@ -34,10 +34,13 @@ resource "azurerm_storage_account" "logs" {
   # - bypass で AzureServices/Logging/Metrics を許可 → Network Watcher Flow Logs と
   #   Front Door 診断ログの書き込みはこれで通る (これらは Azure サービス経由)
   # - 開発者からの直接参照 (Azure Portal / Storage Explorer) は ip_rules で許可
+  #
+  # ⚠ Storage Account の ip_rules は /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
+  #   (NSG の source_address_prefixes は /32 込みで OK なので、 ここで trimsuffix で剥がす)
   network_rules {
     default_action = "Deny"
     bypass         = ["AzureServices", "Logging", "Metrics"]
-    ip_rules       = var.local-pc-ip-addresses
+    ip_rules       = [for ip in var.local-pc-ip-addresses : trimsuffix(ip, "/32")]
   }
 }
 
