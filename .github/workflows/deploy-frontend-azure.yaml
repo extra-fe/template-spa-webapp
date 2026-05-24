@@ -2,6 +2,16 @@ name: Deploy React to Azure Storage
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target environment (GitHub Environments)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
 
 permissions:
   id-token: write
@@ -11,13 +21,30 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # environment: GitHub Environments を指定すると、 vars/secrets が
+    # repository-level → 該当 environment-level の順で解決される。
+    # 各環境ごとに値を分けて持てる (dev: rg-sandbox-dev, prod: rg-sandbox-prod, 等)。
+    environment: ${{ inputs.environment }}
+
+    env:
+      # KV 参照は廃止し、 GitHub Environments の Variables / Secrets を使用。
+      # 値は `terraform output github_actions_variables_json` および
+      # `terraform output -json github_actions_secrets` で確認できる
+      FRONTEND_WORKING_DIRECTORY:    ${{ vars.AZURE_FRONTEND_WORKING_DIRECTORY }}
+      FRONTEND_STORAGE_ACCOUNT_NAME: ${{ vars.AZURE_FRONTEND_STORAGE_ACCOUNT_NAME }}
+      FRONTDOOR_PROFILE_NAME:        ${{ vars.AZURE_FRONTDOOR_PROFILE_NAME }}
+      FRONTDOOR_ENDPOINT_NAME:       ${{ vars.AZURE_FRONTDOOR_ENDPOINT_NAME }}
+      RESOURCE_GROUP_NAME:           ${{ vars.AZURE_RESOURCE_GROUP }}
+      # Vite ビルド時にバンドルされる値 (VITE_ prefix で client-side に露出するため
+      # 厳密には機密ではないが、 Auth0 関連は管理上 secrets として扱う)
+      VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+      VITE_AUTH0_DOMAIN:    ${{ secrets.VITE_AUTH0_DOMAIN }}
+      VITE_AUTH0_AUDIENCE:  ${{ secrets.VITE_AUTH0_AUDIENCE }}
+      VITE_API_BASE_URL:    ${{ vars.VITE_API_BASE_URL }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Get branch name
-        run: echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -27,51 +54,33 @@ jobs:
       - name: Azure Login
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          client-id:       ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id:       ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Set Environment Variables
-        run: |
-          KEY_VAULT_NAME=$(az keyvault list --query "[?ends_with(name, '${{ env.BRANCH_NAME }}')].name" -o tsv)
-          if [ -z "${KEY_VAULT_NAME}" ]; then
-            echo "Error: Key Vault not found for branch '${{ env.BRANCH_NAME }}'" >&2
-            exit 1
-          fi
-          echo "KEY_VAULT_NAME=${KEY_VAULT_NAME}"
-          echo "VITE_AUTH0_CLIENT_ID=$(az keyvault secret show --name "AUTH0-CLIENT-ID" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"  >> $GITHUB_ENV
-          echo "VITE_AUTH0_DOMAIN=$(az keyvault secret show --name "AUTH0-DOMAIN" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "VITE_AUTH0_AUDIENCE=$(az keyvault secret show --name "AUTH0-AUDIENCE" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"  >> $GITHUB_ENV
-          echo "VITE_API_BASE_URL=$(az keyvault secret show --name "API-BASE-URL" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "FRONTEND-STORAGE-ACCOUNT-NAME=$(az keyvault secret show --name "FRONTEND-STORAGE-ACCOUNT-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "FRONTEND-WORKING-DIRECTORY=$(az keyvault secret show --name "FRONTEND-WORKING-DIRECTORY" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "FRONTDOOR-ENDPOINRT-NAME=$(az keyvault secret show --name "FRONTDOOR-ENDPOINRT-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "FRONTDOOR-PROFILE-NAME=$(az keyvault secret show --name "FRONTDOOR-PROFILE-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
-          echo "RESOURCE-GROUP-NAME=$(az keyvault secret show --name "RESOURCE-GROUP-NAME" --vault-name ${KEY_VAULT_NAME} --query "value" -o tsv)"   >> $GITHUB_ENV
 
       - name: Install dependencies
         run: yarn install
-        working-directory: .${{ env.FRONTEND-WORKING-DIRECTORY }}
+        working-directory: .${{ env.FRONTEND_WORKING_DIRECTORY }}
 
       - name: Build React app
         run: yarn run build
-        working-directory: .${{ env.FRONTEND-WORKING-DIRECTORY }}
+        working-directory: .${{ env.FRONTEND_WORKING_DIRECTORY }}
 
       - name: Upload to Azure Blob Storage
         run: |
           az storage blob upload-batch \
-            --account-name ${{ env.FRONTEND-STORAGE-ACCOUNT-NAME }} \
+            --account-name ${{ env.FRONTEND_STORAGE_ACCOUNT_NAME }} \
             --auth-mode login \
             --overwrite \
             -d '$web' \
-            -s .${{ env.FRONTEND-WORKING-DIRECTORY }}/dist
+            -s .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist
 
       - name: Purge Front Door Cache
         run: |
           az afd endpoint purge \
-          --resource-group ${{ env.RESOURCE-GROUP-NAME }} \
-          --profile-name ${{ env.FRONTDOOR-PROFILE-NAME }}  \
-          --endpoint-name ${{ env.FRONTDOOR-ENDPOINRT-NAME }} \
-          --content-paths '/*' \
-          --no-wait
+            --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+            --profile-name ${{ env.FRONTDOOR_PROFILE_NAME }} \
+            --endpoint-name ${{ env.FRONTDOOR_ENDPOINT_NAME }} \
+            --content-paths '/*' \
+            --no-wait
           echo "✅ Cache purge initiated (async)"

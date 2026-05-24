@@ -77,6 +77,12 @@ variable "local-pc-ip-addresses" {
   description = "接続元のIPアドレス"
 }
 
+variable "key-vault-additional-ip-rules" {
+  type        = list(string)
+  default     = []
+  description = "Key Vault network_acls の ip_rules に追加で許可する CIDR (GitHub Actions runner の IP 範囲等を入れる用途)"
+}
+
 variable "public-key-vault-name" {
   default = ""
 }

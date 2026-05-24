@@ -4,6 +4,24 @@ resource "azurerm_key_vault" "vault" {
   resource_group_name = azurerm_resource_group.rg.name
   tenant_id           = data.azurerm_client_config.current.tenant_id
   sku_name            = "standard"
+
+  # ネットワーク制限:
+  # - 既定 Deny。 AAD 認証だけでなくネットワーク経路でも防御
+  # - bypass = AzureServices で Microsoft の信頼済みサービスを許可
+  #   → Container Apps が UAMI で secret を取得する経路は Azure backbone 経由のためここで通る
+  # - ip_rules で開発者 PC (local-pc-ip-addresses) と任意の追加 CIDR を許可
+  #
+  # ⚠ GitHub Actions ワークフロー (deploy-backend-azure.yaml / deploy-frontend-azure.yaml) は
+  #    `az keyvault secret show` で Key Vault を読み出すため、 GH-hosted runner の動的 IP からの
+  #    アクセスが Deny される。 対処は以下のいずれか:
+  #    (a) key-vault-additional-ip-rules に GitHub Actions の IP 範囲を追加 (api.github.com/meta)
+  #    (b) self-hosted runner を VNet 内に置く
+  #    (c) ワークフロー側で Key Vault 参照する代わりに GitHub Secrets に直接値を入れる
+  network_acls {
+    default_action = "Deny"
+    bypass         = "AzureServices"
+    ip_rules       = concat(var.local-pc-ip-addresses, var.key-vault-additional-ip-rules)
+  }
 }
 
 resource "azurerm_key_vault_secret" "auth0_domain" {

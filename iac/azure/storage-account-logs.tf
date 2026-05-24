@@ -28,6 +28,17 @@ resource "azurerm_storage_account" "logs" {
       permanent_delete_enabled = false
     }
   }
+
+  # ネットワーク制限:
+  # - 既定 Deny で外部からの直接アクセスをブロック
+  # - bypass で AzureServices/Logging/Metrics を許可 → Network Watcher Flow Logs と
+  #   Front Door 診断ログの書き込みはこれで通る (これらは Azure サービス経由)
+  # - 開発者からの直接参照 (Azure Portal / Storage Explorer) は ip_rules で許可
+  network_rules {
+    default_action = "Deny"
+    bypass         = ["AzureServices", "Logging", "Metrics"]
+    ip_rules       = var.local-pc-ip-addresses
+  }
 }
 
 # ログ保管コスト最適化: 30日後にCool、180日後にArchiveへ移行
