@@ -74,8 +74,12 @@ resource "azurerm_container_app" "app" {
     max_replicas = 3
 
     container {
-      name   = "backend"
-      image  = "${azurerm_container_registry.acr.login_server}/backend:latest"
+      name = "backend"
+      # 初回 apply 時点では ACR にまだ backend イメージが push されていないため、
+      # Microsoft 公式 Container Apps quickstart 画像をプレースホルダとして使用。
+      # 以降は GitHub Actions が `az containerapp update --image` で更新し、
+      # lifecycle.ignore_changes により Terraform 側からは差分扱いされない。
+      image  = "mcr.microsoft.com/k8se/quickstart:latest"
       cpu    = 0.5
       memory = "1Gi"
 
