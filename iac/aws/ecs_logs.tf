@@ -13,6 +13,18 @@ resource "aws_s3_bucket_public_access_block" "ecs_logs" {
   restrict_public_buckets = true
 }
 
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "ecs_logs" {
+  bucket = aws_s3_bucket.ecs_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 # Standard → Standard-IA(31日) → Glacier(365日) で長期保存
 resource "aws_s3_bucket_lifecycle_configuration" "ecs_logs" {
   bucket = aws_s3_bucket.ecs_logs.id

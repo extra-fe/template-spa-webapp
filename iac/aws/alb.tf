@@ -1,6 +1,7 @@
 # 内部ALB: CloudFront(VPC Origin)からのリクエストを受けてECSタスクへ振り分け
 resource "aws_lb" "alb" {
-  drop_invalid_header_fields = false
+  # RFC 7230 非準拠の HTTP ヘッダを破棄 (HTTPリクエストスマグリング/ヘッダインジェクション対策)
+  drop_invalid_header_fields = true
   enable_deletion_protection = false
   enable_http2               = true
   idle_timeout               = 60
@@ -65,6 +66,18 @@ resource "aws_s3_bucket" "alb_logs" {
   tags          = {}
 }
 
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "alb_logs" {
+  bucket = aws_s3_bucket.alb_logs.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 # ログの保管コスト最適化
 # 0〜30日   : Standard    (頻繁にAthenaで参照)
 # 31〜365日 : Standard-IA (参照頻度低・Athenaクエリは引き続き可能)
@@ -111,6 +124,18 @@ resource "aws_s3_bucket" "athena_results" {
   bucket        = "${var.app-name}-${var.environment}-athena-results-${random_string.suffix.result}"
   force_destroy = true
   tags          = {}
+}
+
+# サーバサイド暗号化 (SSE-S3 / AES256): 2023年以降のAWSデフォルトを明示化
+resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
+  bucket = aws_s3_bucket.athena_results.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "athena_results" {

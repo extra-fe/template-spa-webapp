@@ -1,4 +1,4 @@
-import { Controller, Get, Logger, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Logger, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ConditionalAuthGuard } from './auth/guards/conditional-auth.guard';
@@ -24,9 +24,8 @@ export class AppController {
   @ApiBearerAuth('access-token') // ← .addBearerAuth() で指定した name を使う
   @Get('api/protected')
   @UseGuards(ConditionalAuthGuard)
-  getProtectedResource(@Req() req) {
+  getProtectedResource() {
     Logger.debug('GET api/protected ok');
-    Logger.debug(`JWT payload: ${JSON.stringify(req.user)}`);
     return { message: 'GET api/protected', time: new Date().toISOString() };
-  }  
+  }
 }
