@@ -3,3 +3,29 @@
 # イメージ内の 4.0.3 はビルドパイプラインで推移的にコピーされる依存パッケージ由来と
 # 考えられるが出所が特定できない。本アプリケーションは production で picomatch を使用しない。
 CVE-2026-33671
+
+# --- npm 内部パッケージ由来 (node:22.15.0-bookworm-slim / npm 10.9.2) ---
+# 以下はすべて /usr/local/lib/node_modules/npm/node_modules/ 以下にある
+# npm 自身の実装パッケージ。本番コンテナは npm を実行しないため攻撃経路なし。
+# Node.js / npm アップストリームが修正版をリリースした時点でこのブロックを削除する。
+#
+# tar@6.2.1  : npm/node_modules/tar
+# tar@7.4.3  : npm/node_modules/cacache, npm/node_modules/node-gyp
+# glob@10.4.5: npm/node_modules/glob
+# minimatch@9.0.5: npm/node_modules/minimatch
+
+# tar (CVE-2026-23745, CVE-2026-23950, CVE-2026-24842, CVE-2026-26960, CVE-2026-29786, CVE-2026-31802)
+CVE-2026-23745
+CVE-2026-23950
+CVE-2026-24842
+CVE-2026-26960
+CVE-2026-29786
+CVE-2026-31802
+
+# glob (CVE-2025-64756)
+CVE-2025-64756
+
+# minimatch (CVE-2026-26996, CVE-2026-27903, CVE-2026-27904)
+CVE-2026-26996
+CVE-2026-27903
+CVE-2026-27904
