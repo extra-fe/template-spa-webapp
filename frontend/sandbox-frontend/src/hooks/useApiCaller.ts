@@ -3,6 +3,7 @@ import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
 
 export const useApiCaller = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
+  const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== 'false';
 
   const callApi = async <T = any>(
     path: string,
@@ -15,7 +16,7 @@ export const useApiCaller = () => {
       'Content-Type': 'application/json',
     };
 
-    if (requiresAuth && isAuthenticated) {
+    if (requiresAuth && authEnabled && isAuthenticated) {
       const token = await getAccessTokenSilently();
       headers['Authorization'] = `Bearer ${token}`;
     }
