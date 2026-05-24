@@ -224,27 +224,19 @@ resource "aws_iam_role_policy" "backend-codepipeline" {
         },
         {
           # Resource = * が必須なアクション:
-          # - ListClusters / ListTaskDefinitions: list系はリソースレベル制限不可
+          # - ListClusters / ListTaskDefinitions / ListTasks: list系はリソースレベル制限不可
           # - RegisterTaskDefinition: 新規リビジョン登録時は ARN が未確定のため resource-level 制限不可
-          # - ListTasks: CodePipelineがデプロイ監視に使用。サービス指定でも * が必要
+          # - DescribeTaskDefinition: CodePipeline は resource=* で呼び出すため resource-level 制限不可
+          #   (CloudTrail で "on resource: *" の AccessDenied を確認済み)
           Action = [
             "ecs:ListClusters",
             "ecs:ListTaskDefinitions",
             "ecs:ListTasks",
             "ecs:RegisterTaskDefinition",
+            "ecs:DescribeTaskDefinition",
           ]
           Effect   = "Allow"
           Resource = ["*"]
-        },
-        {
-          # タスク定義の参照はこのプロジェクトのファミリーのみに限定
-          Action = [
-            "ecs:DescribeTaskDefinition",
-          ]
-          Effect = "Allow"
-          Resource = [
-            "${aws_ecs_task_definition.task_definition.arn_without_revision}:*",
-          ]
         },
         {
           # タスク参照はこのクラスタのタスクのみに限定
