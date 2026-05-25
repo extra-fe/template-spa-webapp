@@ -41,7 +41,7 @@ resource "google_cloudbuild_trigger" "frontend" {
   included_files  = ["${var.frontend-src-root}/**"]
 
   repository_event_config {
-    repository = "${var.cloudbuild-github-connection}/repositories/${replace(var.github-repository-name, "/", "-")}"
+    repository = google_cloudbuildv2_repository.main[0].id
 
     push {
       branch = "^${var.target-branch}$"
