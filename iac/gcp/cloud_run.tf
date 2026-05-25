@@ -66,7 +66,10 @@ resource "google_cloud_run_v2_service" "backend" {
     }
 
     containers {
-      image = "${google_artifact_registry_repository.backend.location}-docker.pkg.dev/${var.gcp-project-id}/${google_artifact_registry_repository.backend.repository_id}/backend:latest"
+      # 初回 apply 用の placeholder イメージ。
+      # Cloud Build トリガー実行で本番イメージが Artifact Registry に push されると、
+      # 以降は lifecycle.ignore_changes により Terraform 管理外で更新される。
+      image = "us-docker.pkg.dev/cloudrun/container/hello"
 
       ports {
         container_port = var.api-expose-port
