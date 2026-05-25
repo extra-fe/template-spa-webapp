@@ -2,14 +2,14 @@
 
 ## 1. 概要
 
-AWS と Azure の両クラウドに同一アプリケーションをデプロイするためのインフラ定義。Terraformで全リソースを管理し、CI/CDパイプラインによる自動デプロイを実現する。
+AWS、Azure、GCP の 3 クラウドに同一アプリケーションをデプロイするためのインフラ定義。Terraformで全リソースを管理し、CI/CDパイプラインによる自動デプロイを実現する。
 
 | 項目 | 値 |
 |---|---|
 | IaCツール | Terraform 1.13.5 |
-| 対象クラウド | AWS, Azure |
-| 認証基盤 | Auth0（両クラウド共通） |
-| ソースパス | `iac/aws/`, `iac/azure/` |
+| 対象クラウド | AWS, Azure, GCP |
+| 認証基盤 | Auth0（3クラウド共通） |
+| ソースパス | `iac/aws/`, `iac/azure/`, `iac/gcp/` |
 
 ## 2. アーキテクチャ概要
 
@@ -30,14 +30,14 @@ AWS と Azure の両クラウドに同一アプリケーションをデプロイ
 ユーザー
   │
   ▼
-CloudFront (+ WAF v2) / Front Door (CDN)
+CloudFront (+ WAF v2) / Front Door / External Application LB (+ Cloud Armor)
   │
-  ├── /* ──────────> S3 / Storage Account (Frontend - React SPA)
+  ├── /* ──────────> S3 / Storage Account / Cloud Storage (Frontend - React SPA)
   │
-  └── /api/* ──────> ALB + ECS Fargate / App Service (Backend - NestJS)
+  └── /api/* ──────> ALB + ECS Fargate / App Service / Cloud Run (Backend - NestJS)
                          │
                          ▼
-                     Aurora Serverless / PostgreSQL Flexible Server (DB)
+                     Aurora Serverless / PostgreSQL Flexible Server / Cloud SQL for PostgreSQL (DB)
 ```
 
 ---
@@ -501,7 +501,246 @@ Front Door キャッシュパージ
 
 ---
 
-## 5. GitHub Actions CI (セキュリティスキャン)
+## 5. GCP インフラストラクチャ
+
+### 5.1 Terraform ファイル構成
+
+| ファイル | 管理リソース |
+|---|---|
+| `provider.tf` | Google Cloud, google-beta, Auth0 プロバイダ設定 |
+| `variables.tf` | 入力変数定義 / 公開URL local |
+| `vpc.tf` | VPC ネットワーク, サブネット, Cloud NAT, Serverless VPC Access コネクタ, Private Service Access |
+| `firewall.tf` | VPC Firewall ルール (IAP / Bastion / DB) |
+| `cloud_storage.tf` | フロントエンド用 Cloud Storage バケット |
+| `load_balancer.tf` | External Application LB + Cloud CDN + URL マップ + Serverless NEG |
+| `cloud_armor.tf` | Cloud Armor セキュリティポリシー (WAF 相当) |
+| `artifact_registry.tf` | バックエンド用 Artifact Registry |
+| `cloud_run.tf` | Cloud Run サービス + ランタイム SA + IAM |
+| `cloud_sql.tf` | Cloud SQL for PostgreSQL (Private IP) + DB / ユーザ |
+| `secret_manager.tf` | DATABASE_URL を格納する Secret Manager シークレット |
+| `bastion.tf` | Compute Engine Bastion VM (IAP TCP forwarding 経由) |
+| `auth0.tf` | Auth0 SPA クライアント・リソースサーバー |
+| `cloud_build_backend.tf` | バックエンド CI/CD (Cloud Build → AR → Cloud Deploy → Cloud Run) |
+| `cloud_build_frontend.tf` | フロントエンド CI/CD (Cloud Build → GCS sync → Cloud CDN invalidate) |
+| `monitoring_alerts.tf` | Cloud Monitoring アラートポリシー + Pub/Sub 通知チャネル |
+| `start-stop-resources.tf` | 自動起動・停止 (Cloud Scheduler + Cloud Workflows) |
+| `bigquery_log_sinks.tf` | Cloud Logging → BigQuery sink (LB / Cloud Run / Cloud Armor / VPC Flow Logs) |
+
+### 5.2 ネットワーク
+
+**VPC 構成:**
+
+| リソース | 変数名 | デフォルト値 | リージョン |
+|---|---|---|---|
+| VPC | (auto subnet 無効) | — | グローバル |
+| プライマリサブネット | `subnet_primary_cidr_block` | `172.16.2.0/24` | asia-northeast1 |
+| Serverless VPC コネクタサブネット | `subnet_connector_cidr_block` | `172.16.4.0/28` (`/28` 必須) | asia-northeast1 |
+| Private Service Access レンジ | `psa_range_cidr_block` | `172.16.16.0/20` | グローバル予約 |
+
+**Cloud NAT (Cloud Router):** AWS の Regional NAT Gateway / Azure の VNet egress 相当。Bastion 等 VPC 内インスタンスのアウトバウンドインターネット通信を NAT。
+
+**Private Google Access:** プライマリサブネットで有効化。AWS の VPCエンドポイント (Interface) 相当。NAT 経由せず Google API (Artifact Registry / Secret Manager / Cloud Logging 等) にプライベートアクセス。
+
+**Serverless VPC Access コネクタ:** Cloud Run → VPC 内の Cloud SQL Private IP に到達するための論理経路。AWS の ECS awsvpc モード相当。
+
+**Private Service Access:** Service Networking ピアリングを介して Cloud SQL の Private IP を VPC 内ネットワークに公開。
+
+### 5.3 フロントエンド (Cloud Storage + LB + Cloud CDN)
+
+| リソース | 設定 |
+|---|---|
+| Cloud Storage バケット | uniform_bucket_level_access + public_access_prevention=enforced |
+| SPA ルーティング | `notFoundPage = "index.html"` (AWS の `403 → /index.html` 相当) |
+| Backend Bucket (Cloud CDN) | `cache_mode = USE_ORIGIN_HEADERS` で `index.html` の `no-store, no-cache` を尊重 |
+| LB | External Application LB (EXTERNAL_MANAGED) |
+| HTTPS 証明書 | Google Managed SSL Certificate (`lb-domain` 設定時のみ作成) |
+
+**URL マップ:**
+
+| 優先度 | パス | ターゲット | 備考 |
+|---|---|---|---|
+| デフォルト | `*` | Backend Bucket (GCS) | Cloud CDN 経由で静的アセット配信 |
+| 1 | `/api/*` | Backend Service → Serverless NEG → Cloud Run | CDN なし、Cloud Armor 適用 |
+
+**セキュリティヘッダ:** URL マップの `header_action` で HSTS / X-Content-Type-Options / X-Frame-Options / Referrer-Policy / X-XSS-Protection / Permissions-Policy / CSP を一括付与 (AWS の Response Headers Policy 相当)。
+
+### 5.4 バックエンド (Cloud Run)
+
+| 項目 | 値 |
+|---|---|
+| 実行環境 | Cloud Run v2 (フルマネージドサーバーレス) |
+| CPU | 1 vCPU (cpu_idle 有効) |
+| メモリ | 512 MiB |
+| コンテナポート | 3000 (`api-expose-port` 変数) |
+| イメージ | Artifact Registry (`backend:latest` / `backend:$SHORT_SHA`) |
+| Ingress | `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` (LB 経由のみ受信) |
+| VPC アクセス | Serverless VPC Access コネクタ (egress = PRIVATE_RANGES_ONLY) |
+| ヘルスチェック | startup_probe / liveness_probe = `GET /health` |
+| ログ | Cloud Logging (Cloud Run 標準出力) → BigQuery sink で分析 |
+| シークレット | DATABASE_URL = Secret Manager `secret_key_ref` |
+| ランタイム SA | `${app-name}-${environment}-run` (artifactregistry.reader / secretmanager.secretAccessor / cloudsql.client / logging.logWriter) |
+
+> `template[0].containers[0].image` を `lifecycle.ignore_changes` 対象にし、Cloud Deploy 経由のリビジョン更新と Terraform の管理境界を分離している (AWS の `aws_ecs_service.task_definition` ignore と同じ思想)。
+
+### 5.5 データベース (Cloud SQL for PostgreSQL)
+
+| 項目 | 値 |
+|---|---|
+| エンジン | PostgreSQL 16 |
+| マシンタイプ | `db-custom-1-3840` (1 vCPU / 3.75GB)、`db-tier` 変数で変更可 |
+| 可用性 | ZONAL |
+| ディスク | PD_SSD 10GB (自動拡張) |
+| パブリックアクセス | 無効 (`ipv4_enabled = false`) |
+| Private IP | Service Networking ピアリング経由 |
+| 自動バックアップ | 02:00 JST 開始、30 件保持、PITR 有効 (7 日) |
+| クエリインサイト | 有効 (slow query = 1s 以上ログ) |
+| 接続情報 | DATABASE_URL を Secret Manager に格納 |
+| コネクションプール | `db-connection-limit` / `db-pool-timeout` 変数で Prisma 側を調整 |
+
+> Aurora Serverless v2 のような ACU 単位の自動スケーリングはないが、`db-tier` を変更することで縦スケールは可能。Aurora 同等の柔軟性が必要な場合は AlloyDB への切替を検討する。
+
+### 5.6 ロードバランサー (External Application LB)
+
+| 項目 | 値 |
+|---|---|
+| タイプ | External HTTPS Application LB (Global, EXTERNAL_MANAGED) |
+| フロントエンド | グローバル静的 IP + HTTPS:443 / HTTP:80 |
+| HTTP 動作 | `lb-domain` 設定時は HTTPS リダイレクト / 未設定時は HTTP 直接応答 (PoC 用) |
+| バックエンド (frontend) | Backend Bucket (GCS) + Cloud CDN 有効 |
+| バックエンド (backend) | Backend Service + Serverless NEG (Cloud Run) |
+| ヘルスチェック | Serverless NEG では不要 (Cloud Run 側 probe を使用) |
+| Cloud Armor | Backend Service / Backend Bucket の双方にアタッチ |
+
+### 5.7 Firewall ルール
+
+| ルール | 方向 | プロトコル/ポート | ソース/ターゲット |
+|---|---|---|---|
+| `bastion-ssh-from-iap` | INGRESS | TCP 22 | source: 35.235.240.0/20 (IAP), target tag: bastion |
+| `bastion-egress-db` | EGRESS | TCP 5432 | dest: PSA range, target tag: bastion |
+| `bastion-egress-https` | EGRESS | TCP 443 | dest: 0.0.0.0/0, target tag: bastion |
+| `deny-all-ingress` | INGRESS | ALL | source: 0.0.0.0/0, priority 65534 (デフォルト拒否の明示) |
+
+> Cloud Run → Cloud SQL は VPC Connector 経由で PSA range の Private IP に到達する。Cloud SQL Private IP 側は GCP マネージドネットワークで、VPC Firewall の制御対象外。
+
+### 5.8 Cloud Armor (WAF)
+
+LB Backend Service / Backend Bucket にアタッチした edge セキュリティポリシーで攻撃を遮断。
+
+| 優先度 | ルール | アクション |
+|---|---|---|
+| 1000 | SQL Injection (`sqli-v33-stable`) | deny(403) |
+| 1100 | XSS (`xss-v33-stable`) | deny(403) |
+| 1200 | Local File Inclusion (`lfi-v33-stable`) | deny(403) |
+| 1300 | Remote Code Execution (`rce-v33-stable`) | deny(403) |
+| 1400 | Protocol attack (`protocolattack-v33-stable`) | deny(403) |
+| 1500 | Scanner detection (`scannerdetection-v33-stable`) | deny(403) |
+| 2000 | `/api/*` レート制限 (2000 req/5min/IP) | rate_based_ban → deny(429), ban_duration=600s |
+| 2147483647 | デフォルト | allow |
+
+**Adaptive Protection (Layer 7 DDoS):** 有効化。ML ベースの異常検知。
+
+**ログ:** `log_level = VERBOSE`。LB request log の `jsonPayload.enforcedSecurityPolicy.*` フィールドに記録され、BigQuery sink (`*_armor_logs`) に転送される。
+
+### 5.9 監視アラート (Cloud Monitoring)
+
+Cloud Run / Cloud SQL の主要メトリクスを監視し、Pub/Sub トピック + Email チャネルへ通知する。
+
+| アラーム | メトリクス | 閾値 |
+|---|---|---|
+| `run-cpu-high` | Cloud Run container CPU utilization | > 80% (P99) |
+| `run-memory-high` | Cloud Run container memory utilization | > 80% (P99) |
+| `sql-cpu-high` | Cloud SQL CPU utilization | > 80% (mean) |
+| `sql-memory-high` | Cloud SQL memory utilization | > 80% (mean) |
+| `sql-connections-high` | PostgreSQL `num_backends` | > 70 (max) |
+| `sql-disk-high` | Cloud SQL disk utilization | > 80% (mean) |
+| `sql-disk-bytes-high` | Cloud SQL disk bytes used | > 100 GiB (max, 5分粒度) |
+
+- 評価間隔: 60秒、評価期間: 120秒 (連続 2 回超過で通知)
+- Pub/Sub トピック: `${app-name}-${environment}-alarms` (購読は Terraform 管理外)
+- Email チャネル: `alert-notification-emails` 変数の各アドレス
+
+### 5.10 CI/CD (Cloud Build + Cloud Deploy)
+
+**バックエンドパイプライン:**
+
+```
+GitHub (main push + backend/** 変更)
+  │
+  ▼
+Cloud Build Trigger (GitHub App / 2nd gen connection)
+  │ phases:
+  │   1. docker build (Dockerfile in backend src root)
+  │   2. push to Artifact Registry (latest + $SHORT_SHA)
+  │   3. gcloud deploy releases create → Cloud Deploy
+  │
+  ▼
+Cloud Deploy Delivery Pipeline (single-stage, prod target)
+  │ render & deploy
+  ▼
+Cloud Run (rolling deploy, ignore_changes で image のみ差分許可)
+```
+
+> Cloud Deploy ターゲットは `cloud-run` タイプ。リポジトリのバックエンド配下に `skaffold.yaml` + Cloud Run manifest (`run.googleapis.com/v1` Service yaml) を配置する必要がある。
+
+**フロントエンドパイプライン:**
+
+```
+GitHub (main push + frontend/** 変更)
+  │
+  ▼
+Cloud Build Trigger
+  │ phases:
+  │   1. node:22-slim + yarn install → yarn build (with .env injection)
+  │   2. gcloud storage rsync ./dist gs://${web} (index.html 除外)
+  │   3. gcloud storage cp ./dist/index.html → Cache-Control: no-store, no-cache
+  │   4. gcloud compute url-maps invalidate-cdn-cache (/*)
+```
+
+**事前準備:**
+- Cloud Build GitHub App を Cloud Console から承認
+- 2nd gen Repository Connection を作成し、リソース名を `cloudbuild-github-connection` 変数に設定 (例: `projects/PROJECT/locations/asia-northeast1/connections/github`)
+
+### 5.11 Auth0
+
+| リソース | 設定 |
+|---|---|
+| SPA クライアント (`${app-name}-${environment}-gcp-idp`) | authorization_code, implicit, refresh_token / Web Origin = `local.public_url` |
+| リソースサーバー (`${app-name}-${environment}-gcp-audience`) | identifier = `local.public_url`、RS256 |
+
+> `local.public_url` は `lb-domain` 設定時は `https://${lb-domain}`、未設定時は `http://${LB IP}`。
+
+### 5.12 自動起動・停止 (Cloud Scheduler + Cloud Workflows)
+
+| スケジュール | 時刻 (JST) | 対象 | デフォルト |
+|---|---|---|---|
+| Auto-stop | 毎日 13:00 | Cloud Run scaling → 0 / Cloud SQL `activationPolicy=NEVER` / Bastion VM 停止 | **有効** |
+| Auto-start | 土日 5:00 | Bastion 起動 → Cloud SQL `activationPolicy=ALWAYS` (12分待機) → Cloud Run scaling 復帰 | 無効 (paused) |
+
+**手動起動・停止:**
+
+Cloud Console (Workflows) または `gcloud workflows execute` でワークフローを直接起動できる。
+
+| Workflow 名 | 操作 |
+|---|---|
+| `${app-name}-${environment}-auto-stop` | 停止 |
+| `${app-name}-${environment}-auto-start` | 起動 |
+
+### 5.13 ログ分析 (BigQuery sinks)
+
+AWS の Athena (Glue Catalog) に相当。Cloud Logging のログを BigQuery にエクスポートし、`use_partitioned_tables = true` で日付パーティションテーブルを自動作成する。
+
+| Sink 名 | ソース | BigQuery データセット |
+|---|---|---|
+| `*-lb-logs` | `resource.type = http_load_balancer` | `${app_name}_${environment}_lb_logs` |
+| `*-run-logs` | `resource.type = cloud_run_revision` | `${app_name}_${environment}_cloud_run_logs` |
+| `*-armor-logs` | `enforcedSecurityPolicy.name = ${edge policy}` | `${app_name}_${environment}_armor_logs` |
+| `*-vpc-flow` | `logName = compute.googleapis.com/vpc_flows` | `${app_name}_${environment}_vpc_flow_logs` |
+
+> BigQuery テーブルは sink が初回ログ受信時に自動作成され、スキーマも Cloud Logging が自動推論する。AWS の RegexSerDe / partition projection 相当の設定は不要。
+
+---
+
+## 6. GitHub Actions CI (セキュリティスキャン)
 
 フロントエンド・バックエンドの Pull Request 時に Trivy でセキュリティスキャンを実行する。
 
@@ -553,31 +792,34 @@ Front Door キャッシュパージ
 
 ---
 
-## 6. AWS / Azure リソース対応表
+## 7. AWS / Azure / GCP リソース対応表
 
-| 機能 | AWS | Azure |
-|---|---|---|
-| CDN | CloudFront | Front Door Standard |
-| WAF | AWS WAF v2 (CloudFront scope) | — |
-| フロントエンドホスティング | S3 | Storage Account (静的Web) |
-| バックエンド実行環境 | ECS Fargate | App Service (Linux) |
-| コンテナレジストリ | ECR | ACR |
-| データベース | Aurora Serverless v2 | PostgreSQL Flexible Server |
-| DB長期バックアップ | AWS Backup (専用Vault) | PostgreSQL Flexible Server組込み (7日保持) |
-| シークレット管理 | SSM Parameter Store | Key Vault |
-| ネットワーク | VPC | VNet |
-| 踏み台 | EC2 Bastion | Azure Bastion |
-| CloudFrontアクセスログ | S3 (v2 CW Logs Delivery) | — |
-| WAFログ | S3 (direct logging) | — |
-| 監視アラーム | CloudWatch Alarms + SNS | — |
-| CI/CD | CodePipeline + CodeBuild | GitHub Actions |
-| 認証基盤 | Auth0 (Terraform管理) | Auth0 (Terraform管理) |
-| 監視ログ | CloudWatch Logs | Log Analytics Workspace |
-| CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド) |
+| 機能 | AWS | Azure | GCP |
+|---|---|---|---|
+| CDN | CloudFront | Front Door Standard | External Application LB + Cloud CDN |
+| WAF | AWS WAF v2 (CloudFront scope) | — | Cloud Armor (preconfigured WAF + Adaptive Protection) |
+| フロントエンドホスティング | S3 | Storage Account (静的Web) | Cloud Storage (`notFoundPage = index.html`) |
+| バックエンド実行環境 | ECS Fargate | App Service (Linux) | Cloud Run (v2) |
+| コンテナレジストリ | ECR | ACR | Artifact Registry |
+| データベース | Aurora Serverless v2 | PostgreSQL Flexible Server | Cloud SQL for PostgreSQL (Private IP) |
+| DB長期バックアップ | AWS Backup (専用Vault) | PostgreSQL Flexible Server組込み (7日保持) | Cloud SQL 自動バックアップ (30件) + PITR (7日) |
+| シークレット管理 | SSM Parameter Store | Key Vault | Secret Manager |
+| ネットワーク | VPC | VNet | VPC + Serverless VPC Access コネクタ |
+| 踏み台 | EC2 Bastion (Session Manager) | Azure Bastion | Compute Engine + IAP TCP forwarding |
+| CDN アクセスログ | S3 (v2 CW Logs Delivery) | — | Cloud Logging → BigQuery sink |
+| WAFログ | S3 (direct logging) | — | Cloud Logging → BigQuery sink |
+| 監視アラーム | CloudWatch Alarms + SNS | — | Cloud Monitoring + Pub/Sub + Email |
+| CI/CD | CodePipeline + CodeBuild | GitHub Actions | Cloud Build + Cloud Deploy |
+| 認証基盤 | Auth0 (Terraform管理) | Auth0 (Terraform管理) | Auth0 (Terraform管理) |
+| 監視ログ | CloudWatch Logs | Log Analytics Workspace | Cloud Logging |
+| CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド) | Cloud Build GitHub App (2nd gen Connection) |
+| 自動起動・停止 | EventBridge Scheduler + Step Functions | (なし) | Cloud Scheduler + Cloud Workflows |
+| ログ分析 | Athena (Glue Catalog) | Log Analytics KQL | BigQuery (Logging sink) |
+| プライベートサービス接続 | VPC Endpoint (Interface/Gateway) | Private Endpoint | Private Service Access (Service Networking) |
 
-## 7. Terraform 変数
+## 8. Terraform 変数
 
-### 7.1 共通変数
+### 8.1 共通変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -585,7 +827,7 @@ Front Door キャッシュパージ
 | `auth0_client_id` | (必須) | Auth0 Client ID |
 | `auth0_client_secret` | (必須) | Auth0 Client Secret |
 | `github-repository-name` | (必須) | GitHubリポジトリ名 |
-| `app-name` | `sandbox-aws` / `sandbox` | アプリケーション名プレフィックス |
+| `app-name` | `sandbox-aws` / `sandbox` / `sandbox-gcp` | アプリケーション名プレフィックス |
 | `environment` | `dev` | 環境名 |
 | `frontend-src-root` | `frontend/sandbox-frontend` | フロントエンドのソースパス |
 | `backend-src-root` | `backend/sandbox-backend` | バックエンドのソースパス |
@@ -597,7 +839,7 @@ Front Door キャッシュパージ
 | `db-connection-limit` | `5` | Prismaコネクションプール上限（設定指針は 3.5.1 参照） |
 | `db-pool-timeout` | `15` | Prismaコネクション空き待ちタイムアウト（秒） |
 
-### 7.2 AWS固有変数
+### 8.2 AWS固有変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -606,7 +848,7 @@ Front Door キャッシュパージ
 | `subnet_private1a_cidr_block` | `172.16.2.0/24` | プライベートサブネット1 CIDR |
 | `subnet_private1c_cidr_block` | `172.16.3.0/24` | プライベートサブネット2 CIDR |
 
-### 7.3 Azure固有変数
+### 8.3 Azure固有変数
 
 | 変数名 | デフォルト | 説明 |
 |---|---|---|
@@ -616,9 +858,25 @@ Front Door キャッシュパージ
 | `public-key-vault-rg-name` | `""` | 公開Key Vaultリソースグループ名 |
 | `public-key-vault-secret` | `""` | 公開Key Vaultシークレット |
 
-## 8. デプロイ手順
+### 8.4 GCP固有変数
 
-### 8.1 初回セットアップ
+| 変数名 | デフォルト | 説明 |
+|---|---|---|
+| `gcp-project-id` | (必須) | GCP プロジェクト ID |
+| `gcp-region` | `asia-northeast1` | GCP リージョン (東京) |
+| `gcp-zone` | `asia-northeast1-a` | GCP ゾーン (Bastion VM 配置先) |
+| `github-owner` | (必須) | GitHub Owner 名 |
+| `cloudbuild-github-connection` | `""` | Cloud Build GitHub Connection リソース名 |
+| `subnet_primary_cidr_block` | `172.16.2.0/24` | プライマリサブネット CIDR |
+| `subnet_connector_cidr_block` | `172.16.4.0/28` | Serverless VPC コネクタ専用 /28 サブネット |
+| `psa_range_cidr_block` | `172.16.16.0/20` | Private Service Access 用予約 IP レンジ |
+| `db-tier` | `db-custom-1-3840` | Cloud SQL マシンタイプ |
+| `lb-domain` | `""` | LB 公開ドメイン (Managed SSL + HTTPS リダイレクト用) |
+| `alert-notification-emails` | `[]` | Cloud Monitoring アラート通知先 Email |
+
+## 9. デプロイ手順
+
+### 9.1 初回セットアップ
 
 ```bash
 # AWS
@@ -634,9 +892,18 @@ cp terraform.tfvars.example terraform.tfvars  # 変数を編集
 terraform init
 terraform plan
 terraform apply
+
+# GCP
+cd iac/gcp
+# 事前に gcloud auth application-default login で ADC を設定
+# Cloud Build GitHub App を Cloud Console から承認し、2nd gen Connection を作成しておく
+cp terraform.tfvars.example terraform.tfvars  # 変数を編集
+terraform init
+terraform plan
+terraform apply
 ```
 
-### 8.2 アプリケーションデプロイ
+### 9.2 アプリケーションデプロイ
 
 **AWS:**
 - `main` ブランチへのpushでCodePipelineが自動トリガー
@@ -647,18 +914,25 @@ terraform apply
 - GitHub Actionsワークフローを手動実行 (`workflow_dispatch`)
 - Key Vaultから動的に設定値を取得
 
-## 9. セキュリティ設計
+**GCP:**
+- `main` ブランチへのpushでCloud Build Triggerが自動発火
+- バックエンド: `backend/**` 変更で `cloud_build_backend` トリガー → Cloud Deploy 経由で Cloud Run 更新
+- フロントエンド: `frontend/**` 変更で `cloud_build_frontend` トリガー → GCS sync + Cloud CDN invalidation
 
-| セキュリティ施策 | AWS | Azure |
-|---|---|---|
-| DB非公開 | プライベートサブネット | VNet統合 + パブリックアクセス無効 |
-| シークレット管理 | SSM Parameter Store (SecureString) | Key Vault |
-| CDNオリジン保護 | OAC (S3), VPC Origin (ALB) | IP制限 (Front Door Backend) |
-| CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド資格情報) |
-| コンテナレジストリ | プライベートECR | Managed Identity (AcrPull) |
-| 通信暗号化 | HTTPS リダイレクト | HTTPS (Front Door) |
-| ストレージ暗号化 | Aurora暗号化有効 | - |
-| バックアップ暗号化 | AWS Backup Vault (`aws/backup` KMSキー) | PostgreSQLサービス組込み |
-| アクセス制御 | セキュリティグループ | NSG + サブネットデリゲーション |
-| SG egress 最小化 | ALB/ECS/DB/Bastion/SSM endpoint の egress を用途別ポート・宛先に限定（DB egress なし） | — |
-| IAM 最小権限 | CodePipeline ECS権限を特定タスク定義・クラスタ ARN に限定 | — |
+## 10. セキュリティ設計
+
+| セキュリティ施策 | AWS | Azure | GCP |
+|---|---|---|---|
+| DB非公開 | プライベートサブネット | VNet統合 + パブリックアクセス無効 | Private IP (PSA) + `ipv4_enabled = false` |
+| シークレット管理 | SSM Parameter Store (SecureString) | Key Vault | Secret Manager (user_managed replication) |
+| CDNオリジン保護 | OAC (S3), VPC Origin (ALB) | IP制限 (Front Door Backend) | Cloud Run `INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER` + GCS public_access_prevention |
+| CI/CD認証 | CodeStar Connection | OIDC (フェデレーテッド資格情報) | Cloud Build GitHub App (2nd gen Connection) |
+| コンテナレジストリ | プライベートECR | Managed Identity (AcrPull) | Artifact Registry (Cloud Run ランタイム SA に reader 付与) |
+| 通信暗号化 | HTTPS リダイレクト | HTTPS (Front Door) | HTTPS リダイレクト (`lb-domain` 設定時 Managed SSL) |
+| ストレージ暗号化 | Aurora暗号化有効 | - | Cloud SQL (デフォルトで保存時暗号化、GMEK) |
+| バックアップ暗号化 | AWS Backup Vault (`aws/backup` KMSキー) | PostgreSQLサービス組込み | Cloud SQL 自動バックアップ (Google マネージド暗号化) |
+| アクセス制御 | セキュリティグループ | NSG + サブネットデリゲーション | VPC Firewall (target tags + IAP source range) |
+| 最小権限ルール | ALB/ECS/DB/Bastion/SSM endpoint の egress を用途別ポート・宛先に限定（DB egress なし） | — | Bastion egress を 443 / 5432 + PSA range に限定、 SSH は IAP `35.235.240.0/20` のみ許可 |
+| IAM 最小権限 | CodePipeline ECS権限を特定タスク定義・クラスタ ARN に限定 | — | Cloud Build SA に `artifactregistry.writer` / `clouddeploy.releaser` のみ付与、deploy 用 SA を分離 |
+| WAF | AWS WAF v2 (managed rule groups) | — | Cloud Armor (preconfigured WAF + Adaptive Protection) |
+| 踏み台アクセス | EC2 + SSM Session Manager (SSH キー不要) | Azure Bastion | IAP TCP forwarding (gcloud `--tunnel-through-iap`) — public IP なし、SSH キー不要 |
