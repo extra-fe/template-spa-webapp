@@ -22,6 +22,8 @@
 # グローバル静的 IP: LB のフロントエンド IP
 resource "google_compute_global_address" "lb_ip" {
   name = "${var.app-name}-${var.environment}-lb-ip"
+
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 # Serverless NEG: Cloud Run サービスを LB のバックエンドとして公開する
@@ -193,6 +195,8 @@ resource "google_compute_url_map" "https_redirect" {
     redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
     strip_query            = false
   }
+
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 # Google マネージド SSL 証明書

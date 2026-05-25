@@ -47,10 +47,12 @@ resource "google_monitoring_notification_channel" "pubsub" {
 }
 
 # Cloud Monitoring が Pub/Sub に publish するための IAM 付与
+# service identity (vpc.tf で google_project_service_identity.monitoring) を介して
+# SA を先回り作成しておくことで、初回 apply 時の "SA does not exist" エラーを回避
 resource "google_pubsub_topic_iam_member" "monitoring_publisher" {
   topic  = google_pubsub_topic.alarms.id
   role   = "roles/pubsub.publisher"
-  member = "serviceAccount:service-${data.google_project.self.number}@gcp-sa-monitoring-notification.iam.gserviceaccount.com"
+  member = "serviceAccount:${google_project_service_identity.monitoring.email}"
 }
 
 # Email 通知チャネル (alert-notification-emails が設定されている場合のみ)

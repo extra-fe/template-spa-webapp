@@ -94,14 +94,16 @@ resource "google_clouddeploy_delivery_pipeline" "backend" {
 
 # Cloud Build トリガー: main push + backend/** 変更で発火
 # Build phase で docker build → AR push、その後 gcloud deploy releases create でデプロイ
+# Cloud Build GitHub Connection が未設定の場合はトリガー自体を作成しない
 resource "google_cloudbuild_trigger" "backend" {
+  count           = var.cloudbuild-github-connection == "" ? 0 : 1
   name            = "${var.app-name}-${var.environment}-backend"
   location        = var.gcp-region
   service_account = google_service_account.cloudbuild_backend.id
   included_files  = ["${var.backend-src-root}/**"]
 
   repository_event_config {
-    repository = var.cloudbuild-github-connection == "" ? null : "${var.cloudbuild-github-connection}/repositories/${replace(var.github-repository-name, "/", "-")}"
+    repository = "${var.cloudbuild-github-connection}/repositories/${replace(var.github-repository-name, "/", "-")}"
 
     push {
       branch = "^${var.target-branch}$"

@@ -27,6 +27,34 @@ resource "google_project_service" "services" {
   disable_on_destroy         = false
 }
 
+# API 有効化の伝播待ち
+# google_project_service の create が成功した直後にも、依存サービス
+# (compute.googleapis.com 等) の有効化が GCP 全体に伝播するまで 30-120 秒かかる。
+# この sleep を挟まないと "API not used / disabled" エラーで初回 apply が失敗する。
+resource "time_sleep" "wait_for_apis" {
+  depends_on      = [google_project_service.services]
+  create_duration = "60s"
+}
+
+# Cloud CDN の cache fill サービスエージェント SA を先に作成
+# (Backend Bucket への IAM 付与より前にこの SA を存在させる必要がある)
+resource "google_project_service_identity" "compute" {
+  provider = google-beta
+  project  = var.gcp-project-id
+  service  = "compute.googleapis.com"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
+# Cloud Monitoring の通知用 SA を先に作成
+resource "google_project_service_identity" "monitoring" {
+  provider = google-beta
+  project  = var.gcp-project-id
+  service  = "monitoring.googleapis.com"
+
+  depends_on = [time_sleep.wait_for_apis]
+}
+
 # アプリ全体を収容する VPC (auto subnet を無効化して明示的にサブネットを定義)
 resource "google_compute_network" "vpc" {
   name                            = "${var.app-name}-${var.environment}"
@@ -34,7 +62,7 @@ resource "google_compute_network" "vpc" {
   routing_mode                    = "REGIONAL"
   delete_default_routes_on_create = false
 
-  depends_on = [google_project_service.services]
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 # プライマリサブネット: Bastion 等のリソース配置先
@@ -111,6 +139,8 @@ resource "google_compute_global_address" "psa_range" {
   prefix_length = tonumber(split("/", var.psa_range_cidr_block)[1])
   address       = split("/", var.psa_range_cidr_block)[0]
   network       = google_compute_network.vpc.id
+
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 # Service Networking 接続: Cloud SQL 等のマネージドサービスを Private IP で使うためのピアリング
