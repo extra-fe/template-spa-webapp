@@ -152,31 +152,7 @@ terraform init && terraform apply
 
 Azure 側は **Key Vault に `network_acls` を有効化している**ため、 GitHub Actions ワークフローが Key Vault から secret を直接読み出す方式は使えません。 代わりに **GitHub Environments の Variables/Secrets** に値を登録します。
 
-```powershell
-cd iac/azure
-
-# 1. GitHub UI で `main` Environment を作成
-#    Settings → Environments → New environment → "main"
-
-# 2. terraform output から値を取得して main Environment に一括登録
-$vars = terraform output -json github_actions_variables | ConvertFrom-Json
-$vars.PSObject.Properties | ForEach-Object {
-  gh variable set $_.Name --env main --body $_.Value
-}
-$secrets = terraform output -json github_actions_secrets | ConvertFrom-Json
-$secrets.PSObject.Properties | ForEach-Object {
-  gh secret set $_.Name --env main --body $_.Value
-}
-
-# 3. OIDC 用 secrets (AZURE_CLIENT_ID / TENANT_ID / SUBSCRIPTION_ID) は
-#    repository-level secrets に別途登録 (Key Vault の github-AZURE-* secret から取得可)
-
-# 4. ワークフロー実行
-gh workflow run deploy-backend-azure.yaml --ref main --field environment=main
-gh workflow run deploy-frontend-azure.yaml --ref main --field environment=main
-```
-
-別環境 (staging/prod) を追加する場合は、 `iac/azure/service-principal.tf` の federated credential を for_each で増やし、 `deploy-*-azure.yaml` の `inputs.environment.options` にも追加してください。
+具体的な手順 (Environment 作成 / `terraform output` から一括登録 / OIDC 用 Secrets / 確認 / ワークフロー実行 / トラブルシューティング / マルチ環境への拡張) は [Azure GitHub Actions セットアップガイド](./docs/azure-github-actions-setup.md) を参照してください。
 
 ### ログ分析 / Athena (AWS)
 
@@ -248,6 +224,7 @@ Container App は `min_replicas = 0` で **scale-to-zero 動作**するため、
 | [運用・調査コマンド](./docs/operations.md) | CloudWatch Logs・Athena・ECSヘルスチェック等の調査用コマンド集 |
 | [セキュリティ強化ガイド](./docs/security-hardening.md) | Web脆弱性診断事前対応の適用済み項目・未適用項目・診断時の注意事項 |
 | [ローカル開発ガイド](./docs/local-dev.md) | Windows / PowerShell 用 `dev-up.ps1` の使い方・前提・スクリプト動作内容 |
+| [Azure GitHub Actions セットアップガイド](./docs/azure-github-actions-setup.md) | GitHub Environments への Variables/Secrets 一括登録手順、 OIDC 設定、 トラブルシューティング、 マルチ環境拡張手順 |
 
 ## 正誤表
 
