@@ -22,4 +22,15 @@ resource "azurerm_monitor_diagnostic_setting" "frontdoor" {
   enabled_metric {
     category = "AllMetrics"
   }
+
+  # azurerm provider の既知挙動: Azure CDN profile (Microsoft.Cdn/profiles) の
+  # diagnostic setting に対しては log_analytics_destination_type の値が state に
+  # 正しく保存されない (あるいは読み戻されない) ため、 毎回 plan で diff が出続ける。
+  # 設定自体は初回 apply で適用されている (AFD*Logs テーブルに出力される) ので、
+  # 以降の diff は ignore して plan のノイズを消す。
+  lifecycle {
+    ignore_changes = [
+      log_analytics_destination_type,
+    ]
+  }
 }

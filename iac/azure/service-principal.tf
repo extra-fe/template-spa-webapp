@@ -14,20 +14,6 @@ resource "azurerm_role_assignment" "github_actions_blob_contributor" {
   principal_id         = azuread_service_principal.github_actions.object_id
 }
 
-resource "azurerm_role_assignment" "github_actions_key_vault_reader" {
-  scope                = azurerm_key_vault.vault.id
-  role_definition_name = "Key Vault Reader"
-  principal_id         = azuread_service_principal.github_actions.object_id
-}
-
-
-resource "azurerm_role_assignment" "github_actions_key_vault_secrets_user" {
-  scope                = azurerm_key_vault.vault.id
-  role_definition_name = "Key Vault Secrets User"
-  principal_id         = azuread_service_principal.github_actions.object_id
-}
-
-
 resource "azurerm_role_assignment" "github_actions_cdn_profile_contributor" {
   scope                = azurerm_cdn_frontdoor_profile.cdn.id
   role_definition_name = "Contributor"

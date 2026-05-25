@@ -8,23 +8,15 @@ resource "azurerm_key_vault" "vault" {
   # ネットワーク制限:
   # - 既定 Deny。 AAD 認証だけでなくネットワーク経路でも防御
   # - bypass = AzureServices で Microsoft の信頼済みサービスを許可
-  #   → Container Apps が UAMI で secret を取得する経路は Azure backbone 経由のためここで通る
   # - ip_rules で開発者 PC (local-pc-ip-addresses) と任意の追加 CIDR を許可
   #
-  # ⚠ GitHub Actions ワークフロー (deploy-backend-azure.yaml / deploy-frontend-azure.yaml) は
-  #    `az keyvault secret show` で Key Vault を読み出すため、 GH-hosted runner の動的 IP からの
-  #    アクセスが Deny される。 対処は以下のいずれか:
-  #    (a) key-vault-additional-ip-rules に GitHub Actions の IP 範囲を追加 (api.github.com/meta)
-  #    (b) self-hosted runner を VNet 内に置く
-  #    (c) ワークフロー側で Key Vault 参照する代わりに GitHub Secrets に直接値を入れる
-  # ⚠ Key Vault の ip_rules も /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
+  # ⚠ Key Vault の ip_rules は /31 /32 を受け付けず、 単一 IP は マスク無し で渡す必要がある
   #   (Storage Account と同じ制約。 NSG とはここが違う)
   #
-  # 補足: 過去に Container Apps の secret 取得を通すため env の static_ip_address を
-  # 追加する案を試したが、 CA platform が VNet egress 外の Microsoft 内部経路で fetch する
-  # 動作のため allowlist が効かなかった。
-  # 現在は Container App 側で KV を参照せず CA secret store に値を直接持たせる構成にしたため、
-  # ここでは local PC + 任意の追加 IP のみで OK。
+  # 補足: ランタイムでこの KV を直接参照するリソースは現在無い:
+  # - Container App の DATABASE-URL は CA secret store に直接埋め込む構成 (container-apps.tf 参照)
+  # - GitHub Actions ワークフローは GitHub Environments の Variables/Secrets を直接参照
+  # この KV は OIDC 用 SP 情報 (github-AZURE-*) の保存先としてのみ機能している。
   network_acls {
     default_action = "Deny"
     bypass         = "AzureServices"
@@ -35,71 +27,8 @@ resource "azurerm_key_vault" "vault" {
   }
 }
 
-resource "azurerm_key_vault_secret" "auth0_domain" {
-  name         = "AUTH0-DOMAIN"
-  value        = var.auth0_domain
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "auth0_client_id" {
-  name         = "AUTH0-CLIENT-ID"
-  value        = auth0_client.app.client_id
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "frontend_working_directory" {
-  name         = "FRONTEND-WORKING-DIRECTORY"
-  value        = "/${var.frontend-src-root}"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "frontend_deploy_storage_account_name" {
-  name         = "FRONTEND-STORAGE-ACCOUNT-NAME"
-  value        = azurerm_storage_account.web.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "frontend_deploy_resource_group_name" {
-  name         = "RESOURCE-GROUP-NAME"
-  value        = azurerm_resource_group.rg.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "frontend_deploy_frontdoor_profile_name" {
-  name         = "FRONTDOOR-PROFILE-NAME"
-  value        = azurerm_cdn_frontdoor_profile.cdn.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "frontend_deploy_frontdoor_endpoint_name" {
-  name         = "FRONTDOOR-ENDPOINRT-NAME"
-  value        = azurerm_cdn_frontdoor_endpoint.cdn.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-
-
+# OIDC 用 SP 情報の保存。 docs/azure-github-actions-setup.md の手順で
+# 開発者がこの KV から値を取り出して GitHub repository secrets に登録する想定。
 resource "azurerm_key_vault_secret" "github_azure_client_id" {
   name         = "github-AZURE-CLIENT-ID"
   value        = azuread_application_registration.github_actions.client_id
@@ -127,6 +56,7 @@ resource "azurerm_key_vault_secret" "github_azure_tenant_id" {
   ]
 }
 
+# Terraform 自身が secret を作成・削除できるよう、 実行ユーザーに権限を付与
 resource "azurerm_key_vault_access_policy" "terraform_user" {
   key_vault_id = azurerm_key_vault.vault.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
@@ -156,100 +86,4 @@ resource "azurerm_key_vault_access_policy" "terraform_user" {
   depends_on = [
     azurerm_key_vault.vault
   ]
-}
-
-resource "azurerm_key_vault_access_policy" "github_actions" {
-  key_vault_id = azurerm_key_vault.vault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azuread_service_principal.github_actions.object_id
-
-  key_permissions = [
-    "Get",
-    "List",
-  ]
-
-  secret_permissions = [
-    "Get",
-    "List",
-  ]
-  depends_on = [
-    azurerm_key_vault.vault,
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "auth0_audience" {
-  name         = "AUTH0-AUDIENCE"
-  value        = "https://${azurerm_cdn_frontdoor_endpoint.cdn.host_name}"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "api_base_url" {
-  name         = "API-BASE-URL"
-  value        = "https://${azurerm_cdn_frontdoor_endpoint.cdn.host_name}"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-
-resource "azurerm_key_vault_secret" "acr_name" {
-  name         = "ACR-NAME"
-  value        = azurerm_container_registry.acr.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "image_name" {
-  name         = "IMAGE-NAME"
-  value        = "${var.app-name}-${var.environment}-backend"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "backend_working_directory" {
-  name         = "BACKEND-WORKING-DIRECTORY"
-  value        = "/${var.backend-src-root}"
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-
-resource "azurerm_key_vault_secret" "backend_container_app_name" {
-  name         = "BACKEND-CONTAINER-APP-NAME"
-  value        = azurerm_container_app.app.name
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-resource "azurerm_key_vault_secret" "postgre_flexible_server_connection_string" {
-  name         = "DATABASE-URL"
-  value        = local.database_url
-  key_vault_id = azurerm_key_vault.vault.id
-  depends_on = [
-    azurerm_key_vault_access_policy.terraform_user
-  ]
-}
-
-# Container App の UAMI に Key Vault Secret 読み取り権限を付与
-# UAMI を Container App より先に作成しておくことで、Container App 作成時には
-# 既に secret 参照に必要な権限が揃っている (循環依存回避)
-resource "azurerm_key_vault_access_policy" "container_app_identity" {
-  key_vault_id = azurerm_key_vault.vault.id
-  tenant_id    = data.azurerm_client_config.current.tenant_id
-  object_id    = azurerm_user_assigned_identity.container_app.principal_id
-
-  secret_permissions = ["Get"]
 }
