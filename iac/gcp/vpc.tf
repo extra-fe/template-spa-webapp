@@ -95,10 +95,9 @@ resource "google_vpc_access_connector" "connector" {
   subnet {
     name = google_compute_subnetwork.connector.name
   }
-  machine_type   = "e2-micro"
-  min_instances  = 2
-  max_instances  = 3
-  max_throughput = 300
+  machine_type  = "e2-micro"
+  min_instances = 2
+  max_instances = 3
 
   depends_on = [google_project_service.services]
 }
