@@ -21,6 +21,9 @@ resource "google_sql_database_instance" "main" {
 
   settings {
     tier              = var.db-tier
+    # 新規プロジェクトでは ENTERPRISE_PLUS がデフォルトになり db-custom-* tier が使えないため
+    # 明示的に ENTERPRISE edition を指定 (Aurora Serverless v2 と同等の従来 tier 体系)
+    edition           = "ENTERPRISE"
     availability_type = "ZONAL"
     disk_type         = "PD_SSD"
     disk_size         = 10

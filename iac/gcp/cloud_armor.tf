@@ -18,6 +18,8 @@ resource "google_compute_security_policy" "edge" {
   description = "Edge WAF policy for ${var.app-name}-${var.environment}"
   type        = "CLOUD_ARMOR"
 
+  depends_on = [time_sleep.wait_for_apis]
+
   # Adaptive Protection: ML ベースの異常検知 (AWS WAF にはない GCP 独自機能)
   adaptive_protection_config {
     layer_7_ddos_defense_config {

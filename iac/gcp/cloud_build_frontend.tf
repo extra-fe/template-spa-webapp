@@ -32,14 +32,16 @@ resource "google_project_iam_member" "cb_frontend_logwriter" {
 }
 
 # Cloud Build トリガー: main push + frontend/** 変更で発火
+# Cloud Build GitHub Connection が未設定の場合はトリガー自体を作成しない
 resource "google_cloudbuild_trigger" "frontend" {
+  count           = var.cloudbuild-github-connection == "" ? 0 : 1
   name            = "${var.app-name}-${var.environment}-frontend"
   location        = var.gcp-region
   service_account = google_service_account.cloudbuild_frontend.id
   included_files  = ["${var.frontend-src-root}/**"]
 
   repository_event_config {
-    repository = var.cloudbuild-github-connection == "" ? null : "${var.cloudbuild-github-connection}/repositories/${replace(var.github-repository-name, "/", "-")}"
+    repository = "${var.cloudbuild-github-connection}/repositories/${replace(var.github-repository-name, "/", "-")}"
 
     push {
       branch = "^${var.target-branch}$"

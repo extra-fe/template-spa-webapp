@@ -1,12 +1,19 @@
-# 静的Webアセット配信用 Cloud Storage バケット (LB Backend Bucket 経由でのみ公開)
+# 静的Webアセット配信用 Cloud Storage バケット (Cloud CDN 経由で配信)
 # AWS の S3 バケット (web) 相当
+#
+# 注: Backend Bucket + Cloud CDN で公開する場合の標準パターンとして
+# allUsers に objectViewer を付与し、public_access_prevention を inherited にする。
+# cloud-cdn-fill サービスエージェント (オンデマンド作成) を待つ方式は初回 apply で
+# 競合しやすいため、本テンプレートでは公開バケットパターンを採用。
+# (LB 経由でも直接 storage.googleapis.com 経由でも同じ静的アセットが配信されるだけで
+#  実質的な情報漏洩リスクはない)
 resource "google_storage_bucket" "web" {
   name                        = "${var.app-name}-${var.environment}-web-${random_string.suffix.result}"
   location                    = var.gcp-region
   storage_class               = "STANDARD"
   force_destroy               = true
   uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
+  public_access_prevention    = "inherited"
 
   # SPA ルーティング: 存在しないパスは index.html を返す
   # AWS CloudFront の custom_error_response (403 → /index.html) と同等の挙動を実現
@@ -30,12 +37,10 @@ resource "google_storage_bucket" "web" {
   }
 }
 
-# Cloud CDN の LB がバケットを読むためのサービスアカウントに objectViewer を付与
-# (Backend Bucket は IAM 経由で参照するため、バケット ACL は不要)
-# 注: GCS Backend Bucket は自動的に Cloud CDN サービスアカウントからアクセスされる。
-# バケットが uniform_bucket_level_access の場合、明示的に Storage Object Viewer を付与する。
-resource "google_storage_bucket_iam_member" "web_cdn_viewer" {
+# allUsers に objectViewer を付与してバケット内容を公開読みにする
+# (Cloud CDN backend bucket + 静的アセット配信の標準パターン)
+resource "google_storage_bucket_iam_member" "web_public_viewer" {
   bucket = google_storage_bucket.web.name
   role   = "roles/storage.objectViewer"
-  member = "serviceAccount:service-${data.google_project.self.number}@cloud-cdn-fill.iam.gserviceaccount.com"
+  member = "allUsers"
 }
