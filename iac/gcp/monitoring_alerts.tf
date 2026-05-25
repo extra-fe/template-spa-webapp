@@ -22,7 +22,8 @@ locals {
   alarm_db_volume_bytes          = 107374182400 # 100 GiB
 }
 
-# 全アラーム共通の通知先 Pub/Sub トピック (Terraform 外でサブスクリプションを管理)
+# 全アラーム通知用 Pub/Sub トピック (将来の通知チャネル / 外部連携の受け口として保持)
+# このトピックを Pub/Sub 通知チャネルに紐付ける手順は本ファイル上部のコメント参照
 resource "google_pubsub_topic" "alarms" {
   name = "${var.app-name}-${var.environment}-alarms"
 
@@ -30,30 +31,19 @@ resource "google_pubsub_topic" "alarms" {
 }
 
 # Pub/Sub 通知チャネル
-resource "google_monitoring_notification_channel" "pubsub" {
-  display_name = "${var.app-name}-${var.environment}-alarms-pubsub"
-  type         = "pubsub"
-
-  labels = {
-    topic = google_pubsub_topic.alarms.id
-  }
-
-  user_labels = {
-    app         = var.app-name
-    environment = var.environment
-  }
-
-  depends_on = [google_pubsub_topic_iam_member.monitoring_publisher]
-}
-
-# Cloud Monitoring が Pub/Sub に publish するための IAM 付与
-# service identity (vpc.tf で google_project_service_identity.monitoring) を介して
-# SA を先回り作成しておくことで、初回 apply 時の "SA does not exist" エラーを回避
-resource "google_pubsub_topic_iam_member" "monitoring_publisher" {
-  topic  = google_pubsub_topic.alarms.id
-  role   = "roles/pubsub.publisher"
-  member = "serviceAccount:${google_project_service_identity.monitoring.email}"
-}
+#
+# 注: Cloud Monitoring の Pub/Sub 通知用 SA (gcp-sa-monitoring-notification) は
+# Cloud Console / gcloud で初回 Pub/Sub 通知チャネルを作成するときに lazily 生成される。
+# Terraform から直接 SA に IAM を付与しようとすると初回 apply で "SA does not exist" になるため、
+# Pub/Sub 通知チャネルと IAM 付与は Terraform 管理外とする。
+#
+# Pub/Sub に通知したい場合の手順 (terraform apply 後):
+#   1. Cloud Console > Monitoring > Alerting > Notification channels で Pub/Sub チャネルを作成
+#      (これで SA が生成される)
+#   2. gcloud pubsub topics add-iam-policy-binding sandbox-gcp-dev-alarms \
+#        --member=serviceAccount:service-PROJECT_NUMBER@gcp-sa-monitoring-notification.iam.gserviceaccount.com \
+#        --role=roles/pubsub.publisher
+#   3. アラートポリシーに作成した channel を追加 (Console or Terraform)
 
 # Email 通知チャネル (alert-notification-emails が設定されている場合のみ)
 resource "google_monitoring_notification_channel" "email" {
@@ -67,10 +57,7 @@ resource "google_monitoring_notification_channel" "email" {
 }
 
 locals {
-  notification_channels = concat(
-    [google_monitoring_notification_channel.pubsub.id],
-    [for ch in google_monitoring_notification_channel.email : ch.id],
-  )
+  notification_channels = [for ch in google_monitoring_notification_channel.email : ch.id]
 }
 
 # ---------- Cloud Run ----------

@@ -75,13 +75,15 @@ resource "google_compute_backend_bucket" "frontend" {
     default_ttl = 86400
     max_ttl     = 31536000
 
+    # negative_caching_policy で許可されるコード: [300, 301, 302, 307, 308, 404, 405, 410, 421, 451, 501]
+    # 403 は許可リストに含まれないため除外 (該当する場合は notFoundPage 経由で 404 にフォールバック)
     negative_caching = true
     negative_caching_policy {
       code = 404
       ttl  = 10
     }
     negative_caching_policy {
-      code = 403
+      code = 410
       ttl  = 10
     }
   }

@@ -102,10 +102,8 @@ resource "google_cloud_run_v2_service" "backend" {
         failure_threshold = 3
       }
 
-      env {
-        name  = "PORT"
-        value = tostring(var.api-expose-port)
-      }
+      # PORT は Cloud Run が自動的に container_port から設定するため明示不可
+      # (システム予約環境変数)
       env {
         name  = "LOG_LEVEL"
         value = "debug"
