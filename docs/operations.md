@@ -487,7 +487,7 @@ aws backup start-restore-job `
 | Azure | Linux VM + SSH (Key Vault の公開鍵) | OpenSSH の `-L` 転送 | PostgreSQL Flexible Server FQDN |
 | GCP | Compute Engine + IAP TCP forwarding | `gcloud compute ssh --tunnel-through-iap` の `-L` 転送 | Cloud SQL Private IP |
 
-3 クラウドとも、最終的に `localhost:5432` を `psql` でアクセスする形に統一できます。
+3 クラウドとも、最終的に `localhost:15432` を `psql` でアクセスする形に統一します (ローカル PC で 5432 が PostgreSQL に使われている可能性を避けるため 15432 を使う)。
 
 ---
 
@@ -533,18 +533,19 @@ $BASTION_ID = aws ec2 describe-instances `
 aws ssm start-session `
   --target $BASTION_ID `
   --document-name AWS-StartPortForwardingSessionToRemoteHost `
-  --parameters "host=$DB_ENDPOINT,portNumber=5432,localPortNumber=5432"
+  --parameters "host=$DB_ENDPOINT,portNumber=5432,localPortNumber=15432"
 # このウィンドウは開いたまま。Ctrl+C でセッション切断
 ```
 
 別ウィンドウで `psql` で接続:
 
 ```powershell
-# DATABASE_URL の URI 形式そのまま渡せる
-psql "$DATABASE_URL"
+# DATABASE_URL の host:port を localhost:15432 に書き換えてから接続
+$LOCAL_URL = $DATABASE_URL -replace [regex]::Escape("${DB_ENDPOINT}:5432"), "localhost:15432"
+psql "$LOCAL_URL"
 
 # または個別パラメータで
-psql -h localhost -p 5432 -U $DB_USER -d sandboxawsdevdb
+psql -h localhost -p 15432 -U $DB_USER -d sandboxawsdevdb
 ```
 
 ---
@@ -586,7 +587,7 @@ OpenSSH の `-L` でポートフォワード:
 
 ```powershell
 ssh -i C:\path\to\private_key `
-    -L 5432:${DB_FQDN}:5432 `
+    -L 15432:${DB_FQDN}:5432 `
     azureuser@$BASTION_IP
 # このセッションを開いたまま、別ウィンドウで psql
 ```
@@ -594,7 +595,7 @@ ssh -i C:\path\to\private_key `
 別ウィンドウで `psql`:
 
 ```powershell
-psql -h localhost -p 5432 -U $DB_USER -d sandbox-dev-db
+psql -h localhost -p 15432 -U $DB_USER -d sandbox-dev-db
 # パスワード入力プロンプト
 ```
 
@@ -636,7 +637,7 @@ Bastion 経由でポートフォワード (IAP TCP tunneling + SSH `-L`):
 gcloud compute ssh sandbox-gcp-dev-bastion `
   --zone=asia-northeast1-a `
   --tunnel-through-iap `
-  -- -L "5432:${DB_IP}:5432" -N
+  -- -L "15432:${DB_IP}:5432" -N
 # IAP TCP forwarding + SSH トンネル。 -N でリモートコマンド実行なし
 # このウィンドウは開いたまま。Ctrl+C で切断
 ```
@@ -644,12 +645,12 @@ gcloud compute ssh sandbox-gcp-dev-bastion `
 別ウィンドウで `psql`:
 
 ```powershell
-# DATABASE_URL の host を localhost に置換して接続
-$LOCAL_URL = $DATABASE_URL -replace [regex]::Escape($DB_IP), "localhost"
+# DATABASE_URL の host:port を localhost:15432 に書き換えてから接続
+$LOCAL_URL = $DATABASE_URL -replace [regex]::Escape("${DB_IP}:5432"), "localhost:15432"
 psql "$LOCAL_URL"
 
 # または個別パラメータで
-psql -h localhost -p 5432 -U $DB_USER -d sandboxgcpdevdb
+psql -h localhost -p 15432 -U $DB_USER -d sandboxgcpdevdb
 ```
 
 > Bastion VM には `cloud-sql-proxy` と `postgresql-client` がプリインストール済み (`bastion.tf` の startup-script)。`gcloud compute ssh ... --tunnel-through-iap` で直接 SSH ログインし、`psql` を Bastion 上で実行することも可能。
