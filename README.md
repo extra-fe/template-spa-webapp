@@ -2,7 +2,7 @@
 
 技術書典18・19で出した本から参照しているコードを保存しているリポジトリです。
 
-競馬レース管理をテーマにしたSPAアプリケーションを、**AWS** と **Azure** の両クラウドにデプロイするテンプレートプロジェクトです。
+競馬レース管理をテーマにしたSPAアプリケーションを、**AWS** / **Azure** / **GCP** の 3 クラウドにデプロイするテンプレートプロジェクトです。
 
 ## 書籍について
 
@@ -16,13 +16,13 @@
 ## アーキテクチャ概要
 
 ```
-User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
+User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Application LB (+ Cloud Armor)
                       │
-                      ├── /*      ──> S3 / Storage Account (React SPA)
+                      ├── /*      ──> S3 / Storage Account / Cloud Storage (React SPA)
                       │
-                      └── /api/*  ──> ALB + ECS Fargate / Container Apps (NestJS API)
+                      └── /api/*  ──> ALB + ECS Fargate / Container Apps / Cloud Run (NestJS API)
                                           │
-                                          └──> Aurora Serverless / PostgreSQL Flexible Server
+                                          └──> Aurora Serverless / PostgreSQL Flexible Server / Cloud SQL for PostgreSQL
 ```
 
 ## 技術スタック
@@ -34,6 +34,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 | IaC | Terraform 1.13.5 |
 | CI/CD (AWS) | CodePipeline + CodeBuild |
 | CI/CD (Azure) | GitHub Actions (OIDC) |
+| CI/CD (GCP) | GitHub Actions (OIDC / Workload Identity Federation) |
 | セキュリティスキャン | GitHub Actions (Trivy) |
 | 認証 | Auth0 (JWT / RS256) |
 
@@ -45,7 +46,8 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
 ├── backend/sandbox-backend/     # NestJS API (Docker)
 ├── iac/
 │   ├── aws/                     # AWS Terraform
-│   └── azure/                   # Azure Terraform
+│   ├── azure/                   # Azure Terraform
+│   └── gcp/                     # GCP Terraform
 ├── docs/                        # 仕様書・構成図
 │   ├── frontend-spec.md
 │   ├── backend-spec.md
@@ -57,27 +59,29 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door (CDN)
     └── workflows/               # GitHub Actions CI (Trivy scan, Azure deploy)
 ```
 
-## AWS / Azure リソース対応表
+## AWS / Azure / GCP リソース対応表
 
-| 機能 | AWS | Azure |
-|---|---|---|
-| CDN | CloudFront | Front Door Standard |
-| フロントエンド | S3 | Storage Account (静的Web) |
-| バックエンド | ECS Fargate | Container Apps (Workload Profiles / Consumption, VNet 統合) |
-| コンテナレジストリ | ECR | ACR |
-| データベース | Aurora Serverless v2 (PostgreSQL 16) | PostgreSQL Flexible Server (v16) |
-| DB長期バックアップ | AWS Backup (日次・30日保持) | PostgreSQL Flexible Server組込み (7日保持) |
-| シークレット管理 | SSM Parameter Store | Key Vault (network_acls 有効、 Container App は内蔵 secret store) |
-| ネットワーク | VPC (172.16.0.0/16) | VNet (10.0.0.0/24) |
-| WAF | AWS WAF v2 (CloudFront scope, マネージドルール3種) | — (Front Door Standard は WAF 未対応、 Premium 化で利用可能 → [SKU 選択について](./docs/azure-frontdoor-sku.md)) |
-| VPCフローログ | S3 + `aws_flow_log` | VNet Flow Logs + Traffic Analytics (Storage + Log Analytics) |
-| ALBアクセスログ | S3 | — (Front Door が CloudFront/ALB を兼ねる) |
-| CloudFrontアクセスログ | S3 (v2 CW Logs Delivery, JSON) | Front Door 診断ログ (Storage + Log Analytics, Dedicated テーブル) |
-| WAFログ | S3 (direct logging, JSON) | — (WAF 自体が未配置のため) |
-| ログ分析 | Athena + Glue Data Catalog（partition projection）VPC/ALB/CF/WAF | Log Analytics + KQL (saved searches: VNet Flow / Front Door / Container App) |
-| 監視アラーム | CloudWatch Alarms + SNS | Azure Monitor Metric Alerts + Action Group (Container App / PostgreSQL) |
-| 自動起動・停止 | EventBridge Scheduler + Step Functions | Azure Automation Account + PowerShell Runbook + Schedule |
-| CI/CD | CodePipeline (自動トリガー) | GitHub Actions (OIDC + GitHub Environments, 手動トリガー) |
+| 機能 | AWS | Azure | GCP |
+|---|---|---|---|
+| CDN | CloudFront | Front Door Standard | External Application LB + Cloud CDN |
+| フロントエンド | S3 | Storage Account (静的Web) | Cloud Storage (`notFoundPage = index.html`) |
+| バックエンド | ECS Fargate | Container Apps (Workload Profiles / Consumption, VNet 統合) | Cloud Run v2 (Serverless NEG, ingress = INTERNAL_LOAD_BALANCER) |
+| コンテナレジストリ | ECR | ACR | Artifact Registry |
+| データベース | Aurora Serverless v2 (PostgreSQL 16) | PostgreSQL Flexible Server (v16) | Cloud SQL for PostgreSQL 16 (Private IP / PSA) |
+| DB長期バックアップ | AWS Backup (日次・30日保持) | PostgreSQL Flexible Server組込み (7日保持) | Cloud SQL 自動バックアップ (30件保持) + PITR (7日) |
+| シークレット管理 | SSM Parameter Store | Key Vault (network_acls 有効、 Container App は内蔵 secret store) | Secret Manager (user_managed replication) |
+| ネットワーク | VPC (172.16.0.0/16) | VNet (10.0.0.0/24) | VPC + Serverless VPC Access コネクタ (172.16.0.0/16) |
+| WAF | AWS WAF v2 (CloudFront scope, マネージドルール3種) | — (Front Door Standard は WAF 未対応、 Premium 化で利用可能 → [SKU 選択について](./docs/azure-frontdoor-sku.md)) | Cloud Armor (preconfigured WAF + Adaptive Protection + レート制限) |
+| VPCフローログ | S3 + `aws_flow_log` | VNet Flow Logs + Traffic Analytics (Storage + Log Analytics) | VPC Flow Logs → Cloud Logging |
+| ALBアクセスログ | S3 | — (Front Door が CloudFront/ALB を兼ねる) | — (External LB が CDN/ALB を兼ねる) |
+| CDN アクセスログ | S3 (v2 CW Logs Delivery, JSON) | Front Door 診断ログ (Storage + Log Analytics, Dedicated テーブル) | LB request logs → Cloud Logging → BigQuery sink |
+| WAFログ | S3 (direct logging, JSON) | — (WAF 自体が未配置のため) | Cloud Armor ログ → Cloud Logging → BigQuery sink |
+| ログ分析 | Athena + Glue Data Catalog（partition projection）VPC/ALB/CF/WAF | Log Analytics + KQL (saved searches: VNet Flow / Front Door / Container App) | BigQuery (Logging sink, use_partitioned_tables): LB / Cloud Run / Armor / VPC Flow |
+| 監視アラーム | CloudWatch Alarms + SNS | Azure Monitor Metric Alerts + Action Group (Container App / PostgreSQL) | Cloud Monitoring Alert Policy + Email チャネル (Cloud Run / Cloud SQL) |
+| 自動起動・停止 | EventBridge Scheduler + Step Functions | Azure Automation Account + PowerShell Runbook + Schedule | Cloud Scheduler + Cloud Workflows |
+| 踏み台 | EC2 + SSM Session Manager | Linux VM + SSH (Key Vault 公開鍵) | Compute Engine + IAP TCP forwarding |
+| CI/CD | CodePipeline (自動トリガー) | GitHub Actions (OIDC + GitHub Environments, 手動トリガー) | GitHub Actions (OIDC / Workload Identity Federation, 手動トリガー) |
+| HTTPS | CloudFront 既定 `*.cloudfront.net` | Front Door 既定 `*.azurefd.net` | Google Managed SSL (`lb-domain` 設定時、 ドメイン必須) |
 
 ## セットアップ
 
@@ -111,6 +115,13 @@ terraform init && terraform apply
 # Azure
 cd iac/azure
 terraform init && terraform apply
+
+# GCP
+cd iac/gcp
+# 事前に gcloud auth application-default login で ADC 設定
+terraform init && terraform apply
+# apply 完了後、 GitHub Environment "gcp-main" に Variables / Secrets を一括登録
+./setup-github-env.ps1
 ```
 
 詳細は [IaC仕様書](./docs/iac-spec.md) を参照してください。
@@ -180,6 +191,40 @@ Container App は `min_replicas = 0` で **scale-to-zero 動作**するため、
 
 詳細は [iac/azure/start-stop-resources.tf](./iac/azure/start-stop-resources.tf) を参照してください。
 
+## GCP 運用
+
+### ログ分析 / BigQuery
+
+Cloud Logging のログを sink 経由で BigQuery にエクスポートし、SQL でクエリできます。 partition projection 相当の `use_partitioned_tables = true` で日付パーティションテーブルが自動作成されるため手動管理は不要です。
+
+| Sink 名 | ソース | BigQuery データセット |
+|---|---|---|
+| `*-lb-logs` | LB request log (`resource.type = http_load_balancer`) | `${app}_${env}_lb_logs` |
+| `*-run-logs` | Cloud Run コンテナログ | `${app}_${env}_cloud_run_logs` |
+| `*-armor-logs` | Cloud Armor 判定ログ (`enforcedSecurityPolicy.name`) | `${app}_${env}_armor_logs` |
+| `*-vpc-flow` | VPC Flow Logs | `${app}_${env}_vpc_flow_logs` |
+
+詳細は [IaC仕様書 5.13](./docs/iac-spec.md#5-gcp-インフラストラクチャ) を参照してください。
+
+### 監視アラーム
+
+Cloud Monitoring Alert Policy + Email 通知チャネルで Cloud Run と Cloud SQL の異常を検知します。 Pub/Sub topic も作成済みで、 Console から通知チャネルを追加する手順は [monitoring_alerts.tf](./iac/gcp/monitoring_alerts.tf) 冒頭のコメント参照。
+
+### 自動起動・停止
+
+Cloud Scheduler + Cloud Workflows で Cloud Run / Cloud SQL / Bastion VM を毎日 13:00 JST に自動停止します (`auto-start` は既定で paused、 土日 5:00 JST 起動)。
+
+### HTTPS / カスタムドメイン
+
+GCP の External Application LB は AWS CloudFront (`*.cloudfront.net`) / Azure Front Door (`*.azurefd.net`) と違い、 マネージドのデフォルト HTTPS ドメインを提供しません。 HTTPS を使うには:
+
+1. ドメインを用意 (任意のレジストラ)
+2. A レコードを LB IP に向ける
+3. `iac/gcp/terraform.tfvars` に `lb-domain = "your-domain"` 設定
+4. `terraform apply` で Google Managed SSL Certificate 自動発行 (15-60分)
+
+未設定時は HTTP のみ (PoC 用)。
+
 ## セキュリティ強化 (Web脆弱性診断 事前対応)
 
 第三者Web脆弱性診断を見据えたハードニングを適用済みです。適用済み項目・意図的に未適用とした項目・診断実施時の注意事項は [セキュリティ強化ガイド](./docs/security-hardening.md) を参照してください。
@@ -190,10 +235,10 @@ Container App は `min_replicas = 0` で **scale-to-zero 動作**するため、
 |---|---|
 | [Frontend仕様書](./docs/frontend-spec.md) | ルーティング、Auth0認証、画面仕様、API通信 |
 | [Backend仕様書](./docs/backend-spec.md) | APIエンドポイント、DBスキーマ、JWT認証、OpenTelemetry |
-| [IaC仕様書](./docs/iac-spec.md) | AWS/Azure リソース定義、CI/CD、セキュリティ設計、Trivy スキャン設定 |
+| [IaC仕様書](./docs/iac-spec.md) | AWS/Azure/GCP リソース定義、CI/CD、セキュリティ設計、Trivy スキャン設定 |
 | [AWS構成図](./docs/diagrams/aws-architecture.drawio.svg) | AWS インフラ構成図 (Draw.io SVG) |
 | [Azure構成図](./docs/diagrams/azure-architecture.drawio.svg) | Azure インフラ構成図 (Draw.io SVG) |
-| [CI/CDパイプライン図](./docs/diagrams/cicd-pipeline.drawio.svg) | AWS/Azure CI/CD 比較図 (Draw.io SVG) |
+| [CI/CDパイプライン図](./docs/diagrams/cicd-pipeline.drawio.svg) | AWS/Azure CI/CD 比較図 (Draw.io SVG, GCP は未反映) |
 | [運用・調査コマンド](./docs/operations.md) | CloudWatch Logs・Athena・ECSヘルスチェック等の調査用コマンド集 |
 | [セキュリティ強化ガイド](./docs/security-hardening.md) | Web脆弱性診断事前対応の適用済み項目・未適用項目・診断時の注意事項 |
 | [ローカル開発ガイド](./docs/local-dev.md) | Windows / PowerShell 用 `dev-up.ps1` の使い方・前提・スクリプト動作内容 |
