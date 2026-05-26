@@ -475,6 +475,187 @@ aws backup start-restore-job `
 
 ---
 
+## DB接続 (踏み台経由)
+
+各クラウドとも DB は VPC/VNet 内に Private IP/Endpoint で配置されており、ローカル PC から直接接続できません。踏み台を経由してポートフォワードで接続します。
+
+### 概要
+
+| クラウド | 踏み台種別 | 接続方式 | DB エンドポイント |
+|---|---|---|---|
+| AWS | EC2 + SSM Session Manager | SSM port forwarding (SSH 鍵不要) | Aurora cluster endpoint |
+| Azure | Linux VM + SSH (Key Vault の公開鍵) | OpenSSH の `-L` 転送 | PostgreSQL Flexible Server FQDN |
+| GCP | Compute Engine + IAP TCP forwarding | `gcloud compute ssh --tunnel-through-iap` の `-L` 転送 | Cloud SQL Private IP |
+
+3 クラウドとも、最終的に `localhost:5432` を `psql` でアクセスする形に統一できます。
+
+---
+
+### AWS (Aurora Serverless v2)
+
+接続情報を取得:
+
+```powershell
+# Aurora クラスタエンドポイントとマスター名
+$DB_ENDPOINT = aws rds describe-db-clusters `
+  --db-cluster-identifier sandbox-aws-dev-db-cluster `
+  --query "DBClusters[0].Endpoint" --output text
+
+$DB_USER = aws rds describe-db-clusters `
+  --db-cluster-identifier sandbox-aws-dev-db-cluster `
+  --query "DBClusters[0].MasterUsername" --output text
+
+# DATABASE_URL を SSM Parameter Store (SecureString) から取得
+$DATABASE_URL = aws ssm get-parameter `
+  --name "/dev/connection_strings/sandbox-aws" `
+  --with-decryption `
+  --query "Parameter.Value" --output text
+
+Write-Host "Endpoint: $DB_ENDPOINT"
+Write-Host "User: $DB_USER"
+Write-Host "URL: $DATABASE_URL"
+```
+
+Aurora が自動停止 (`auto-stop` で stopped) なら先に起動:
+
+```powershell
+aws rds start-db-cluster --db-cluster-identifier sandbox-aws-dev-db-cluster
+# Available になるまで数分〜10分待機
+```
+
+踏み台 EC2 のインスタンス ID を取得して SSM ポートフォワード開始:
+
+```powershell
+$BASTION_ID = aws ec2 describe-instances `
+  --filters "Name=tag:Name,Values=dev-bastion" "Name=instance-state-name,Values=running" `
+  --query "Reservations[0].Instances[0].InstanceId" --output text
+
+aws ssm start-session `
+  --target $BASTION_ID `
+  --document-name AWS-StartPortForwardingSessionToRemoteHost `
+  --parameters "host=$DB_ENDPOINT,portNumber=5432,localPortNumber=5432"
+# このウィンドウは開いたまま。Ctrl+C でセッション切断
+```
+
+別ウィンドウで `psql` で接続:
+
+```powershell
+# DATABASE_URL の URI 形式そのまま渡せる
+psql "$DATABASE_URL"
+
+# または個別パラメータで
+psql -h localhost -p 5432 -U $DB_USER -d sandboxawsdevdb
+```
+
+---
+
+### Azure (PostgreSQL Flexible Server)
+
+接続情報を取得:
+
+```powershell
+# Flexible Server FQDN
+$DB_FQDN = az postgres flexible-server show `
+  --resource-group rg-sandbox-dev `
+  --name sandbox-dev-db-server `
+  --query "fullyQualifiedDomainName" --output tsv
+
+# 管理者ユーザー名
+$DB_USER = az postgres flexible-server show `
+  --resource-group rg-sandbox-dev `
+  --name sandbox-dev-db-server `
+  --query "administratorLogin" --output tsv
+
+# Bastion VM のパブリック IP
+$BASTION_IP = az vm show -d `
+  --resource-group rg-sandbox-dev `
+  --name sandbox-dev-bastion-vm `
+  --query "publicIps" --output tsv
+
+# DB パスワード (Container Apps の env から取得 / Terraform output 経由でも可)
+$DB_PASSWORD = az containerapp show `
+  --resource-group rg-sandbox-dev `
+  --name sandbox-dev-backend-app `
+  --query "properties.template.containers[0].env[?name=='DATABASE_URL'].value | [0]" --output tsv
+# DATABASE_URL から password だけ抜く場合は別途パース
+```
+
+> Flexible Server は private DNS で `*.private.postgres.database.azure.com` で名前解決される。ローカルからは `nslookup` で解決できないため、SSH トンネル先で `<FQDN>:5432` を指定する。
+
+OpenSSH の `-L` でポートフォワード:
+
+```powershell
+ssh -i C:\path\to\private_key `
+    -L 5432:${DB_FQDN}:5432 `
+    azureuser@$BASTION_IP
+# このセッションを開いたまま、別ウィンドウで psql
+```
+
+別ウィンドウで `psql`:
+
+```powershell
+psql -h localhost -p 5432 -U $DB_USER -d sandbox-dev-db
+# パスワード入力プロンプト
+```
+
+> 公開鍵は Terraform で Key Vault から取得して VM に注入済み (`bastion.tf`)。対応する秘密鍵をローカル PC に保管してパス指定。
+
+---
+
+### GCP (Cloud SQL for PostgreSQL)
+
+接続情報を取得:
+
+```powershell
+# Cloud SQL Private IP
+$DB_IP = gcloud sql instances describe sandbox-gcp-dev-db `
+  --format="value(ipAddresses[0].ipAddress)"
+
+# ユーザー名
+$DB_USER = "sandboxgcpdevdbadmin"
+
+# DATABASE_URL を Secret Manager から取得
+$DATABASE_URL = gcloud secrets versions access latest `
+  --secret=sandbox-gcp-dev-database-url
+
+Write-Host "DB IP: $DB_IP"
+Write-Host "User: $DB_USER"
+Write-Host "URL: $DATABASE_URL"
+```
+
+Cloud SQL が自動停止 (`activationPolicy = NEVER`) なら先に起動:
+
+```powershell
+gcloud sql instances patch sandbox-gcp-dev-db --activation-policy=ALWAYS
+# RUNNABLE になるまで数分待機
+```
+
+Bastion 経由でポートフォワード (IAP TCP tunneling + SSH `-L`):
+
+```powershell
+gcloud compute ssh sandbox-gcp-dev-bastion `
+  --zone=asia-northeast1-a `
+  --tunnel-through-iap `
+  -- -L "5432:${DB_IP}:5432" -N
+# IAP TCP forwarding + SSH トンネル。 -N でリモートコマンド実行なし
+# このウィンドウは開いたまま。Ctrl+C で切断
+```
+
+別ウィンドウで `psql`:
+
+```powershell
+# DATABASE_URL の host を localhost に置換して接続
+$LOCAL_URL = $DATABASE_URL -replace [regex]::Escape($DB_IP), "localhost"
+psql "$LOCAL_URL"
+
+# または個別パラメータで
+psql -h localhost -p 5432 -U $DB_USER -d sandboxgcpdevdb
+```
+
+> Bastion VM には `cloud-sql-proxy` と `postgresql-client` がプリインストール済み (`bastion.tf` の startup-script)。`gcloud compute ssh ... --tunnel-through-iap` で直接 SSH ログインし、`psql` を Bastion 上で実行することも可能。
+
+---
+
 ## リソース削除
 
 ```powershell
