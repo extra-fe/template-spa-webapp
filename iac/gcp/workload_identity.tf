@@ -92,10 +92,19 @@ resource "google_service_account_iam_member" "github_actions_frontend_wif" {
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.environment/${var.github-environment}"
 }
 
-# GCS バケットへの書き込み権限
+# GCS バケットへの書き込み権限 (object 操作)
 resource "google_storage_bucket_iam_member" "github_actions_frontend_writer" {
   bucket = google_storage_bucket.web.name
   role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.github_actions_frontend.email}"
+}
+
+# バケットメタデータ参照権限
+# gcloud storage rsync は事前に GetBucket を呼ぶため storage.buckets.get が必要。
+# objectAdmin にはこの権限が含まれないため legacyBucketReader を併用する。
+resource "google_storage_bucket_iam_member" "github_actions_frontend_bucket_reader" {
+  bucket = google_storage_bucket.web.name
+  role   = "roles/storage.legacyBucketReader"
   member = "serviceAccount:${google_service_account.github_actions_frontend.email}"
 }
 
