@@ -42,6 +42,9 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account:            ${{ secrets.GCP_BACKEND_SERVICE_ACCOUNT }}
+          # access_token モード: auth ステップ内で impersonation を実行し、SA access token (1h) を取得。
+          # gcloud は静的トークンを使うため、後続コマンドで impersonation refresh が走らなくなる。
+          token_format: access_token
 
       - name: Setup gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
