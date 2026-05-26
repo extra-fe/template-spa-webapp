@@ -61,6 +61,10 @@ resource "google_compute_backend_service" "backend" {
 
 # Backend Bucket: フロントエンド静的アセット用 (Cloud CDN 有効)
 # AWS の CloudFront default behavior (S3) 相当
+#
+# 注: Cloud Armor の edge_security_policy には preconfigured WAF (SQLi/XSS 等) を
+# アタッチできない制約があるため、フル WAF は API (backend service) 側のみで適用する。
+# 静的アセットは攻撃面が小さいため、WAF より rate-limit/DDoS 対策で十分。
 resource "google_compute_backend_bucket" "frontend" {
   name        = "${var.app-name}-${var.environment}-frontend"
   bucket_name = google_storage_bucket.web.name
@@ -75,18 +79,23 @@ resource "google_compute_backend_bucket" "frontend" {
     default_ttl = 86400
     max_ttl     = 31536000
 
+    # negative_caching_policy で許可されるコード: [300, 301, 302, 307, 308, 404, 405, 410, 421, 451, 501]
+    # 403 は許可リストに含まれないため除外 (該当する場合は notFoundPage 経由で 404 にフォールバック)
     negative_caching = true
     negative_caching_policy {
       code = 404
       ttl  = 10
     }
     negative_caching_policy {
-      code = 403
+      code = 410
       ttl  = 10
     }
   }
 
-  edge_security_policy = google_compute_security_policy.edge.id
+  # edge_security_policy は preconfigured WAF をサポートしないため、
+  # 本テンプレートではフル WAF を持つ google_compute_security_policy.edge は使えない。
+  # 必要なら IP / rate-limit のみの CLOUD_ARMOR_EDGE タイプの別ポリシーを作成して
+  # アタッチする (今回は省略)。
 }
 
 # URL Map: パスルーティング + セキュリティヘッダ付与
