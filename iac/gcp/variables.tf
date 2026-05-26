@@ -14,14 +14,7 @@ variable "github-repository-name" {
 }
 
 variable "github-owner" {
-  description = "GitHub Owner 名 (Cloud Build GitHub 連携で使用)"
-}
-
-# Cloud Build の GitHub 連携 (Cloud Build GitHub App) を事前に承認した後の Connection ID
-# 例: projects/PROJECT_ID/locations/REGION/connections/github
-variable "cloudbuild-github-connection" {
-  description = "【環境変数で指定】Cloud Build GitHub Connection リソース名"
-  default     = ""
+  description = "GitHub Owner 名 (Workload Identity Federation の attribute_condition で使用)"
 }
 
 ## GCPプロジェクトとリージョン

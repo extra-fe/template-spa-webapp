@@ -1,0 +1,88 @@
+name: Deploy React to GCP Cloud Storage
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target environment (GitHub Environments)'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+
+    env:
+      GCP_PROJECT_ID:              ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION:                  ${{ vars.GCP_REGION }}
+      GCP_FRONTEND_BUCKET:         ${{ vars.GCP_FRONTEND_BUCKET }}
+      GCP_URL_MAP_NAME:            ${{ vars.GCP_URL_MAP_NAME }}
+      FRONTEND_WORKING_DIRECTORY:  ${{ vars.GCP_FRONTEND_WORKING_DIRECTORY }}
+      # Vite ビルド時にバンドルされる値
+      VITE_AUTH0_CLIENT_ID: ${{ secrets.VITE_AUTH0_CLIENT_ID }}
+      VITE_AUTH0_DOMAIN:    ${{ secrets.VITE_AUTH0_DOMAIN }}
+      VITE_AUTH0_AUDIENCE:  ${{ secrets.VITE_AUTH0_AUDIENCE }}
+      VITE_API_BASE_URL:    ${{ vars.VITE_API_BASE_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.15.0
+
+      - name: Authenticate to GCP via OIDC (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account:            ${{ secrets.GCP_FRONTEND_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: .${{ env.FRONTEND_WORKING_DIRECTORY }}
+
+      - name: Build React app
+        run: yarn run build
+        working-directory: .${{ env.FRONTEND_WORKING_DIRECTORY }}
+
+      - name: Upload assets to Cloud Storage (excluding index.html)
+        # 通常アセットはハッシュ付きで再デプロイ時に名前が変わるため長期キャッシュ可。
+        # gcloud storage rsync で差分のみ転送 + 不要ファイルを削除
+        run: |
+          gcloud storage rsync \
+            .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist \
+            gs://${{ env.GCP_FRONTEND_BUCKET }}/ \
+            --recursive \
+            --delete-unmatched-destination-objects \
+            --exclude='^index\.html$'
+
+      - name: Upload index.html with no-cache
+        # SPA エントリポイントは再デプロイ時に常に最新を返したいため Cache-Control を上書き
+        run: |
+          gcloud storage cp \
+            .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist/index.html \
+            gs://${{ env.GCP_FRONTEND_BUCKET }}/index.html \
+            --cache-control='no-store, no-cache'
+
+      - name: Invalidate Cloud CDN cache
+        # URL マップ単位で /* を無効化。完了は async なため次のデプロイをすぐ走らせても OK
+        run: |
+          gcloud compute url-maps invalidate-cdn-cache ${{ env.GCP_URL_MAP_NAME }} \
+            --path='/*' \
+            --global \
+            --async
+          echo "✅ Cache invalidation initiated (async)"

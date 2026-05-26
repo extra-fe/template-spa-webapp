@@ -1,0 +1,69 @@
+name: Build and Deploy to GCP Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy target environment (GitHub Environments)'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+        # 別環境を増やす場合: ここに staging / prod 等を追加し、
+        # iac/gcp 側でも attribute_condition / WIF binding の対象 environment を追加
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ inputs.environment }}
+
+    env:
+      # 値は `terraform output github_actions_variables_json` で確認できる
+      GCP_PROJECT_ID:             ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION:                 ${{ vars.GCP_REGION }}
+      GCP_AR_REPO:                ${{ vars.GCP_ARTIFACT_REGISTRY_REPO }}
+      GCP_IMAGE_NAME:             ${{ vars.GCP_BACKEND_IMAGE_NAME }}
+      GCP_SERVICE_NAME:           ${{ vars.GCP_BACKEND_SERVICE_NAME }}
+      BACKEND_WORKING_DIRECTORY:  ${{ vars.GCP_BACKEND_WORKING_DIRECTORY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via OIDC (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account:            ${{ secrets.GCP_BACKEND_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push Docker image to Artifact Registry
+        run: |
+          cd .${{ env.BACKEND_WORKING_DIRECTORY }}
+          IMAGE_BASE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/${{ env.GCP_IMAGE_NAME }}"
+          docker build \
+            -t "$IMAGE_BASE:${{ github.sha }}" \
+            -t "$IMAGE_BASE:latest" \
+            -f Dockerfile .
+          docker push "$IMAGE_BASE:${{ github.sha }}"
+          docker push "$IMAGE_BASE:latest"
+
+      - name: Deploy to Cloud Run
+        # --image でイメージを差し替えると新リビジョンが自動作成され、トラフィック 100% で
+        # 切り替わる (Cloud Run が rolling 配置を行うため明示的な再起動は不要)
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.GCP_AR_REPO }}/${{ env.GCP_IMAGE_NAME }}:${{ github.sha }}"
+          gcloud run services update ${{ env.GCP_SERVICE_NAME }} \
+            --region=${{ env.GCP_REGION }} \
+            --image="$IMAGE"
