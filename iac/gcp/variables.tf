@@ -17,6 +17,13 @@ variable "github-owner" {
   description = "GitHub Owner 名 (Workload Identity Federation の attribute_condition で使用)"
 }
 
+# GitHub Actions の Environment 名 (この Environment 名で実行された workflow のみが
+# WIF 経由でデプロイ SA を impersonate できる)
+variable "github-environment" {
+  default     = "gcp-main"
+  description = "GitHub Actions Environment 名 (Azure と区別するため gcp-main を既定)"
+}
+
 ## GCPプロジェクトとリージョン
 variable "gcp-project-id" {
   description = "【環境変数で指定】GCP プロジェクト ID"

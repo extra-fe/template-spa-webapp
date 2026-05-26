@@ -53,7 +53,7 @@ resource "google_service_account" "github_actions_backend" {
 resource "google_service_account_iam_member" "github_actions_backend_wif" {
   service_account_id = google_service_account.github_actions_backend.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github-repository-name}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.environment/${var.github-environment}"
 }
 
 # Artifact Registry へ push する権限
@@ -89,7 +89,7 @@ resource "google_service_account" "github_actions_frontend" {
 resource "google_service_account_iam_member" "github_actions_frontend_wif" {
   service_account_id = google_service_account.github_actions_frontend.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github-repository-name}"
+  member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.environment/${var.github-environment}"
 }
 
 # GCS バケットへの書き込み権限

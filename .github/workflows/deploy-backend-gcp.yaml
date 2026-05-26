@@ -6,12 +6,13 @@ on:
       environment:
         description: 'Deploy target environment (GitHub Environments)'
         required: true
-        default: 'main'
+        default: 'gcp-main'
         type: choice
         options:
-          - main
-        # 別環境を増やす場合: ここに staging / prod 等を追加し、
-        # iac/gcp 側でも attribute_condition / WIF binding の対象 environment を追加
+          - gcp-main
+        # Azure 側 (main) と Environment 名を分けるため gcp-main を既定とする。
+        # 別環境を増やす場合: ここに gcp-staging / gcp-prod 等を追加し、
+        # iac/gcp 側でも attribute.environment の WIF binding を該当名で追加
 
 permissions:
   id-token: write

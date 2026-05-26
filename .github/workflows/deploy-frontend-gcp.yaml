@@ -6,10 +6,10 @@ on:
       environment:
         description: 'Deploy target environment (GitHub Environments)'
         required: true
-        default: 'main'
+        default: 'gcp-main'
         type: choice
         options:
-          - main
+          - gcp-main
 
 permissions:
   id-token: write
