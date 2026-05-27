@@ -10,7 +10,7 @@
 variable "auto-start-enabled" {
   type        = bool
   default     = false
-  description = "true にすると土日 05:00 JST の自動起動スケジュールが有効化される"
+  description = "true にすると土日 07:00 JST の自動起動スケジュールが有効化される"
 }
 
 resource "azurerm_automation_account" "auto" {
@@ -115,8 +115,8 @@ resource "azurerm_automation_schedule" "auto_stop" {
   description = "毎日 21:00 JST に停止"
 }
 
-# ---------- Schedule: 土日 05:00 JST 起動 ----------
-# AWS 側: cron(0 5 ? * SAT,SUN *) Asia/Tokyo
+# ---------- Schedule: 土日 07:00 JST 起動 ----------
+# AWS 側: cron(0 7 ? * SAT,SUN *) Asia/Tokyo
 resource "azurerm_automation_schedule" "auto_start" {
   name                    = "auto-start-${var.app-name}-${var.environment}"
   resource_group_name     = azurerm_resource_group.rg.name
@@ -125,8 +125,8 @@ resource "azurerm_automation_schedule" "auto_start" {
   interval                = 1
   timezone                = "Asia/Tokyo"
   week_days               = ["Saturday", "Sunday"]
-  start_time              = "2030-01-04T05:00:00+09:00" # 2030-01-04 は金曜なので翌5日(土)が初回発火
-  description             = "土日 05:00 JST に起動"
+  start_time              = "2030-01-04T07:00:00+09:00" # 2030-01-04 は金曜なので翌5日(土)が初回発火
+  description             = "土日 07:00 JST に起動"
 }
 
 # ---------- スケジュールと Runbook を紐付け ----------

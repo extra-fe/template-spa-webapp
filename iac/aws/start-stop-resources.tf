@@ -222,7 +222,7 @@ resource "aws_scheduler_schedule" "auto_start" {
   group_name = "default"
   state      = "DISABLED"
 
-  schedule_expression          = "cron(0 5 ? * SAT,SUN *)"
+  schedule_expression          = "cron(0 7 ? * SAT,SUN *)"
   schedule_expression_timezone = "Asia/Tokyo"
 
   flexible_time_window {

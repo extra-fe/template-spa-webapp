@@ -2,12 +2,12 @@
 # - Cloud Scheduler: cron トリガー (Asia/Tokyo)
 # - Cloud Workflows: 複数 GCP API を順次/並列で実行
 #
-# Auto-stop  : 毎日 13:00 JST (デフォルト有効)
+# Auto-stop  : 毎日 21:00 JST (デフォルト有効)
 #   1. Cloud Run min/max インスタンスを 0 にする (= 実質停止)
 #   2. Cloud SQL インスタンスを停止
 #   3. Bastion VM を停止
 #
-# Auto-start : 土日 5:00 JST (デフォルト無効 = paused)
+# Auto-start : 土日 7:00 JST (デフォルト無効 = paused)
 #   1. Bastion VM を起動
 #   2. Cloud SQL インスタンスを起動 → 起動完了まで待機
 #   3. Cloud Run min/max インスタンスを 1 に戻す
@@ -146,11 +146,11 @@ resource "google_project_iam_member" "scheduler_workflow_invoker" {
   member  = "serviceAccount:${google_service_account.scheduler.email}"
 }
 
-# Auto-stop スケジューラ: 毎日 13:00 JST = UTC 04:00
+# Auto-stop スケジューラ: 毎日 21:00 JST = UTC 12:00
 resource "google_cloud_scheduler_job" "auto_stop" {
   name      = "${var.app-name}-${var.environment}-auto-stop"
   region    = var.gcp-region
-  schedule  = "0 13 * * *"
+  schedule  = "0 21 * * *"
   time_zone = "Asia/Tokyo"
 
   http_target {
@@ -166,11 +166,11 @@ resource "google_cloud_scheduler_job" "auto_stop" {
   depends_on = [google_project_iam_member.scheduler_workflow_invoker]
 }
 
-# Auto-start スケジューラ: 土日 5:00 JST、デフォルトは paused (= AWS の DISABLED 相当)
+# Auto-start スケジューラ: 土日 7:00 JST、デフォルトは paused (= AWS の DISABLED 相当)
 resource "google_cloud_scheduler_job" "auto_start" {
   name      = "${var.app-name}-${var.environment}-auto-start"
   region    = var.gcp-region
-  schedule  = "0 5 * * 6,0"
+  schedule  = "0 7 * * 6,0"
   time_zone = "Asia/Tokyo"
   paused    = true
 
