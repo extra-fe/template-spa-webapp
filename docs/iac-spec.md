@@ -218,7 +218,7 @@ Aurora自動バックアップ（最大35日）とは別系統で、AWS Backup V
 | 対象リソース | `aws_rds_cluster.cluster` |
 | IAMロール | `AWSBackup-{app-name}-{environment}-role`（`...ForBackup` / `...ForRestores` 管理ポリシー） |
 
-> auto-stop (13:00 JST) で停止状態にある時間帯にバックアップが走るが、停止中Auroraクラスタもスナップショット取得は可能(`CreateDBClusterSnapshot`)。
+> auto-stop (21:00 JST) で停止状態にある時間帯にバックアップが走るが、停止中Auroraクラスタもスナップショット取得は可能(`CreateDBClusterSnapshot`)。
 
 ### 3.6 ロードバランサー (ALB)
 
@@ -334,8 +334,8 @@ Build (CodeBuild)
 
 | スケジュール | 時刻（JST） | 対象 | デフォルト |
 |---|---|---|---|
-| Auto-stop | 毎日 13:00 | ECS（タスク数→0）→ Aurora 停止 → Bastion 停止 | **有効** |
-| Auto-start | 土日 5:00 | Bastion 起動 → Aurora 起動（12分待機）→ ECS（タスク数→1） | 無効 |
+| Auto-stop | 毎日 21:00 | ECS（タスク数→0）→ Aurora 停止 → Bastion 停止 | **有効** |
+| Auto-start | 土日 7:00 | Bastion 起動 → Aurora 起動（12分待機）→ ECS（タスク数→1） | 無効 |
 
 > Auto-start はデフォルト無効。平日も自動起動したい場合は AWS コンソール（EventBridge Scheduler）または Terraform の `state` を `"ENABLED"` に変更する。
 
@@ -739,8 +739,8 @@ gcloud compute url-maps invalidate-cdn-cache (/*)
 
 | スケジュール | 時刻 (JST) | 対象 | デフォルト |
 |---|---|---|---|
-| Auto-stop | 毎日 13:00 | Cloud Run scaling → 0 / Cloud SQL `activationPolicy=NEVER` / Bastion VM 停止 | **有効** |
-| Auto-start | 土日 5:00 | Bastion 起動 → Cloud SQL `activationPolicy=ALWAYS` (12分待機) → Cloud Run scaling 復帰 | 無効 (paused) |
+| Auto-stop | 毎日 21:00 | Cloud Run scaling → 0 / Cloud SQL `activationPolicy=NEVER` / Bastion VM 停止 | **有効** |
+| Auto-start | 土日 7:00 | Bastion 起動 → Cloud SQL `activationPolicy=ALWAYS` (12分待機) → Cloud Run scaling 復帰 | 無効 (paused) |
 
 **手動起動・停止:**
 

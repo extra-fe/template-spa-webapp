@@ -40,7 +40,7 @@ resource "aws_iam_role_policy_attachment" "backup_restore" {
 }
 
 # Backup Plan: 日次02:00 JST、30日保持
-# 注: start-stop-resources.tf で13:00 JSTに自動停止されるが、停止中Auroraクラスタも
+# 注: start-stop-resources.tf で21:00 JSTに自動停止されるが、停止中Auroraクラスタも
 #     スナップショット取得は可能(AWS Backupが内部でCreateDBClusterSnapshotを呼び出す)
 resource "aws_backup_plan" "aurora" {
   name = "${var.app-name}-${var.environment}-aurora-backup-plan"
