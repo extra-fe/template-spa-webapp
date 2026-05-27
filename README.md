@@ -109,6 +109,31 @@ GCP の Cloud Armor は Cloud LB のフロントエンドではなく **API の 
 
 dev/sandbox 用途では Standard、本番リリース時に Premium へ切り替える運用を想定しています。 upgrade 手順 (`sku_name` 変更 + `azurerm_cdn_frontdoor_firewall_policy` / `azurerm_cdn_frontdoor_security_policy` 追加) と Standard 採用理由の詳細は [Front Door の SKU 選択について (Azure)](./docs/azure-frontdoor-sku.md) を参照してください。
 
+## フロントエンドデプロイ時のキャッシュ戦略
+
+Vite ビルドが生成する `dist/` は 2 種類のファイルに分かれ、 それぞれ異なる `Cache-Control` でアップロードします。
+
+| ファイル種別 | 例 | Cache-Control |
+|---|---|---|
+| ハッシュ付きアセット | `assets/index-Abc123.js` / `assets/main-Xyz789.css` | `public, max-age=31536000, immutable` (1 年) |
+| エントリポイント | `index.html` | `no-store, no-cache` |
+
+`index.html` は新しいハッシュ付きアセット URL を指す唯一のファイルです。 キャッシュされて古い `index.html` が返ると、 中で参照されているアセット URL (`assets/index-<oldhash>.js`) は新デプロイ後の Storage には既に存在しないため **404 (白画面)** になります。 CDN 側のパージはユーザブラウザに残ったキャッシュには無力なため、 アップロード時の `Cache-Control` 付与が必須です。
+
+3 クラウドとも同じ戦略で、 デプロイ時に「アセット長期キャッシュ → index.html 単体上書き → CDN パージ」の順で実行します。
+
+| クラウド | アセット (長期キャッシュ) | index.html (no-cache) | CDN パージ |
+|---|---|---|---|
+| AWS | `aws s3 sync ./dist --exclude "index.html"` ([code-pipeline-frontend.tf](./iac/aws/code-pipeline-frontend.tf)) | `aws s3 cp ./dist/index.html --cache-control "no-store, no-cache"` | `aws cloudfront create-invalidation --paths "/*"` |
+| Azure | `az storage blob upload-batch --content-cache-control 'public, max-age=31536000, immutable'` ([deploy-frontend-azure.yaml](./.github/workflows/deploy-frontend-azure.yaml)) | `az storage blob upload --content-cache-control 'no-store, no-cache'` (index.html 単体を再アップロード) | `az afd endpoint purge --content-paths '/*'` |
+| GCP | `gcloud storage rsync --exclude='^index\.html$'` ([deploy-frontend-gcp.yaml](./.github/workflows/deploy-frontend-gcp.yaml)) | `gcloud storage cp --cache-control='no-store, no-cache'` | `gcloud compute url-maps invalidate-cdn-cache --path='/*'` |
+
+CDN 側でも保険を効かせています:
+
+- **AWS CloudFront**: `/index.html` 専用ビヘイビアで `Managed-CachingDisabled` を設定し、 オリジンの Cache-Control が抜けた場合でも CDN レベルで no-cache 動作 ([cloudfront.tf](./iac/aws/cloudfront.tf))
+- **GCP Cloud CDN**: バックエンドバケットのキャッシュモードを `USE_ORIGIN_HEADERS` にして GCS の Cache-Control をそのまま尊重 ([load_balancer.tf](./iac/gcp/load_balancer.tf))
+- **Azure Front Door**: 既定でオリジンの Cache-Control を尊重するため Storage 側の設定のみで成立
+
 ## セットアップ
 
 ### ローカル開発
