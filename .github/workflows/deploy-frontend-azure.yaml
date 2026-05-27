@@ -67,14 +67,33 @@ jobs:
         run: yarn run build
         working-directory: .${{ env.FRONTEND_WORKING_DIRECTORY }}
 
-      - name: Upload to Azure Blob Storage
+      - name: Upload assets to Azure Blob Storage (long cache)
+        # ハッシュ付きアセット (assets/*-<hash>.js / .css 等) は再ビルドで URL が変わるため
+        # ブラウザ・Front Door の双方で長期キャッシュ可。 index.html もここで一旦アップロードされるが、
+        # 次ステップで上書きして Cache-Control を no-cache に切り替える。
         run: |
           az storage blob upload-batch \
             --account-name ${{ env.FRONTEND_STORAGE_ACCOUNT_NAME }} \
             --auth-mode login \
             --overwrite \
             -d '$web' \
-            -s .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist
+            -s .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist \
+            --content-cache-control 'public, max-age=31536000, immutable'
+
+      - name: Overwrite index.html with no-cache
+        # SPA エントリポイントは再デプロイ時に常に最新を返す必要がある
+        # (古い index.html は古いハッシュ付きアセット URL を指しており、 新デプロイ後に 404 となるため)
+        # AWS の `aws s3 cp index.html --cache-control "no-store, no-cache"` /
+        # GCP の `gcloud storage cp index.html --cache-control='no-store, no-cache'` と同等
+        run: |
+          az storage blob upload \
+            --account-name ${{ env.FRONTEND_STORAGE_ACCOUNT_NAME }} \
+            --auth-mode login \
+            --overwrite \
+            -c '$web' \
+            -f .${{ env.FRONTEND_WORKING_DIRECTORY }}/dist/index.html \
+            -n index.html \
+            --content-cache-control 'no-store, no-cache'
 
       - name: Purge Front Door Cache
         run: |
