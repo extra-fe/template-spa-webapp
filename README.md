@@ -83,6 +83,32 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Applicat
 | CI/CD | CodePipeline (自動トリガー) | GitHub Actions (OIDC + GitHub Environments, 手動トリガー) | GitHub Actions (OIDC / Workload Identity Federation, 手動トリガー) |
 | HTTPS | CloudFront 既定 `*.cloudfront.net` | Front Door 既定 `*.azurefd.net` | Google Managed SSL (`lb-domain` 設定時、 ドメイン必須) |
 
+## エッジセキュリティ (CDN / WAF) の構成
+
+3 クラウドとも「CDN・エッジ層 → API バックエンド」という階層は共通ですが、 WAF の配置は採用 SKU の制約で違いが出ます。
+
+### 現状
+
+| クラウド | 経路 | WAF 配置 |
+|---|---|---|
+| AWS | CloudFront → ALB → ECS Fargate | ✅ AWS WAF v2 を **CloudFront (scope=CLOUDFRONT)** にアタッチ ([iac/aws/waf.tf](./iac/aws/waf.tf)) |
+| GCP | External Application LB → Cloud Run | ✅ Cloud Armor を **API backend service** にアタッチ ([iac/gcp/cloud_armor.tf](./iac/gcp/cloud_armor.tf), [iac/gcp/load_balancer.tf](./iac/gcp/load_balancer.tf)) |
+| Azure | Front Door **Standard** → Container Apps | ❌ Front Door Standard は WAF 非対応 (Premium 専用機能) |
+
+ルール内容は AWS / GCP とも概ね同等で、 OWASP 系マネージドルール群 (SQLi / XSS / LFI / RCE / Protocol attack / Scanner detection) + `/api/*` に対する 5 分 / IP / 2000 リクエストのレート制限を実装しています。
+
+GCP の Cloud Armor は Cloud LB のフロントエンドではなく **API の backend service にアタッチ**しているため、 静的アセット側 (Cloud Storage) には WAF が掛かりません (攻撃面が小さいため意図的に省略)。
+
+### Azure を Front Door Premium に上げた場合
+
+| 観点 | Standard (現状) | Premium (移行後) |
+|---|---|---|
+| 経路 | Front Door → Container Apps (ingress: public) | Front Door → **Private Link** → Container Apps (ingress: internal) を選択可。 公開接点を Front Door に集約できる |
+| セキュリティ | WAF なし。 アプリ層で `X-Azure-FDID` ヘッダ検証する想定 (本テンプレ未実装) | **WAF (Microsoft_DefaultRuleSet + Microsoft_BotManagerRuleSet)** を Front Door にアタッチして AWS / GCP と並ぶエッジ防御レベル |
+| コスト (Japan East 月額目安) | 約 $35 | **約 $330** (約 10 倍) |
+
+dev/sandbox 用途では Standard、本番リリース時に Premium へ切り替える運用を想定しています。 upgrade 手順 (`sku_name` 変更 + `azurerm_cdn_frontdoor_firewall_policy` / `azurerm_cdn_frontdoor_security_policy` 追加) と Standard 採用理由の詳細は [Front Door の SKU 選択について (Azure)](./docs/azure-frontdoor-sku.md) を参照してください。
+
 ## セットアップ
 
 ### ローカル開発
