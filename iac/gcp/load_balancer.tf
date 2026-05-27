@@ -74,10 +74,9 @@ resource "google_compute_backend_bucket" "frontend" {
     # USE_ORIGIN_HEADERS: GCS にアップロード時に設定した Cache-Control をそのまま尊重
     # index.html に Cache-Control: no-store, no-cache を付与してアップロードする運用で
     # AWS の Managed-CachingDisabled (index.html ビヘイビア) と同等の挙動を実現
-    cache_mode  = "USE_ORIGIN_HEADERS"
-    client_ttl  = 86400
-    default_ttl = 86400
-    max_ttl     = 31536000
+    # 注: USE_ORIGIN_HEADERS では client_ttl / default_ttl / max_ttl は GCP API 側で無視され
+    #     常に 0 が返るため指定しない (指定すると毎回 0→指定値 の永続差分が発生する)
+    cache_mode = "USE_ORIGIN_HEADERS"
 
     # negative_caching_policy で許可されるコード: [300, 301, 302, 307, 308, 404, 405, 410, 421, 451, 501]
     # 403 は許可リストに含まれないため除外 (該当する場合は notFoundPage 経由で 404 にフォールバック)
