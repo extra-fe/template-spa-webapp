@@ -53,6 +53,8 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Applicat
 │   ├── backend-spec.md
 │   ├── iac-spec.md
 │   └── diagrams/                # インフラ構成図 (Draw.io SVG)
+├── tests/
+│   └── load/                    # API 負荷テスト (k6 シナリオ・AWS/Azure/GCP 共通)
 ├── appendix/                    # 正誤表・補足資料
 └── .github/
     ├── CODEOWNERS               # レビュー必須設定
@@ -517,6 +519,7 @@ curl https://<your-domain>/api/guest/connect-test
 | [ローカル開発ガイド](./docs/local-dev.md) | Windows / PowerShell 用 `dev-up.ps1` の使い方・前提・スクリプト動作内容 |
 | [Azure GitHub Actions セットアップガイド](./docs/azure-github-actions-setup.md) | GitHub Environments への Variables/Secrets 一括登録手順、 OIDC 設定、 トラブルシューティング、 マルチ環境拡張手順 |
 | [Front Door SKU 選択ガイド (Azure)](./docs/azure-frontdoor-sku.md) | Standard / Premium の違い、 Standard 採用理由、 Premium への upgrade 手順 |
+| [API 負荷テスト (k6)](./tests/load/README.md) | k6 ベースの API 負荷テスト基盤、Auth0 ROPG セットアップ、AWS/Azure/GCP 切り替え、クリーンアップ SQL |
 
 ## 正誤表
 
