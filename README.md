@@ -183,98 +183,21 @@ Azure 側は **Key Vault に `network_acls` を有効化している**ため、 
 
 具体的な手順 (Environment 作成 / `terraform output` から一括登録 / OIDC 用 Secrets / 確認 / ワークフロー実行 / トラブルシューティング / マルチ環境への拡張) は [Azure GitHub Actions セットアップガイド](./docs/azure-github-actions-setup.md) を参照してください。
 
-## AWS 運用
+## クラウド別 運用
 
-### ログ分析 / Athena
+ログ分析・監視アラーム・自動起動停止・HTTPS など、 3 クラウドの運用構成の違いを以下にまとめます。 各項目の詳細・手順は [クラウド別 運用ガイド](./docs/cloud-operations.md) を参照してください。
 
-VPCフローログ・ALBアクセスログ・CloudFrontアクセスログ・WAFログをS3へ記録し、Athenaを使ってSQLでクエリできます。partition projection によりパーティションの手動追加は不要です。
+| 観点 | AWS | Azure | GCP |
+|---|---|---|---|
+| ログ分析基盤 | Athena + Glue Data Catalog (S3, partition projection) | Log Analytics + KQL (saved searches) | BigQuery (Cloud Logging sink, 日付パーティション) |
+| 監視アラーム | CloudWatch Alarms + SNS | Azure Monitor Metric Alerts + Action Group | Cloud Monitoring Alert Policy + Email |
+| 監視対象 | ECS / Aurora | Container App / PostgreSQL Flexible Server | Cloud Run / Cloud SQL |
+| 通知先の登録 | SNS サブスクリプションを手動登録 | Action Group に手動登録 | 通知チャネルを手動追加 |
+| 自動起動・停止 | EventBridge Scheduler + Step Functions | Automation Account + PowerShell Runbook | Cloud Scheduler + Cloud Workflows |
+| アイドル時の課金 | 自動停止で抑制 | Container App は scale-to-zero で自動ゼロ課金 | 自動停止で抑制 (Cloud Run はリクエスト課金) |
+| HTTPS デフォルトドメイン | `*.cloudfront.net` | `*.azurefd.net` | なし (Google Managed SSL = ドメイン必須) |
 
-クエリ手順・サンプルSQLは [運用・調査コマンドリファレンス](./docs/operations.md#athena---ログ分析クエリ) を参照してください。
-
-### Auroraバックアップ (AWS Backup)
-
-Aurora Serverless v2の自動バックアップ（最大35日）とは別系統で、AWS Backupによる日次・30日保持の長期バックアップを設定しています。
-
-設定詳細は [IaC仕様書 3.5.2](./docs/iac-spec.md#352-バックアップ-aws-backup)、バックアップ一覧・復元手順は [運用・調査コマンド](./docs/operations.md#aurora-aws-backup) を参照してください。
-
-### 監視アラーム
-
-CloudWatch Alarms + SNS で ECS・Aurora の異常を検知します。SNS サブスクリプション（メール・Slack等）は Terraform 管理外のため、デプロイ後に手動登録が必要です。
-
-詳細は [IaC仕様書 3.10](./docs/iac-spec.md#310-監視アラーム-cloudwatch-alarms) を参照してください。
-
-### 自動起動・停止
-
-開発コスト削減のため、EventBridge Scheduler + Step Functions で毎日 21:00 JST に自動停止します（Auto-start はデフォルト無効、有効化すると土日 07:00 JST 起動）。
-
-詳細・手動操作手順は [IaC仕様書 3.13](./docs/iac-spec.md#313-自動起動停止-eventbridge-scheduler--step-functions) を参照してください。
-
-## Azure 運用
-
-Front Door の SKU 選択 (Standard / Premium) については [Front Door の SKU 選択について (Azure)](./docs/azure-frontdoor-sku.md) を参照してください。
-
-### ログ分析
-
-VNet Flow Logs (Traffic Analytics) と Front Door 診断ログを Log Analytics Workspace に集約し、 KQL クエリで分析します (AWS の Athena 相当)。
-
-代表的なクエリは `iac/azure/log_analytics_queries.tf` に `azurerm_log_analytics_saved_search` として登録されており、 Azure Portal の Log Analytics → Saved searches から実行できます:
-
-- VNet Flow: 宛先別バイト数 TOP10 / 拒否フロー一覧
-- Front Door: ステータスコード分布 / 4xx・5xx エラーパス TOP20
-- Container App: コンソール ERROR 抽出 / システムイベント (リビジョン起動失敗等)
-
-ログは合わせて Storage Account (`*-logs`) にも長期保管 (Hot → Cool@31d → Archive@365d ライフサイクル) されます。
-
-### 監視アラーム
-
-Azure Monitor Metric Alerts + Action Group で Container App と PostgreSQL Flexible Server の異常を検知します:
-
-- **Container App**: `UsageNanoCores` / `WorkingSetBytes` / `RestartCount` (クラッシュループ検知)
-- **PostgreSQL**: `cpu_percent` / `memory_percent` / `storage_percent` / `active_connections`
-
-通知先 (メール/Slack等) は Terraform 管理外のため、 デプロイ後に Action Group `<app>-<env>-alarms` に手動登録してください。
-
-### 自動起動・停止
-
-Azure Automation Account + PowerShell Runbook + Schedule で PostgreSQL Flexible Server と Bastion VM を毎日 21:00 JST に自動停止します (`auto_start` は既定で無効、 `auto-start-enabled = true` で土日 07:00 JST 起動)。
-
-Container App は `min_replicas = 0` で **scale-to-zero 動作**するため、 アイドル時は自動でゼロ課金になり、 Runbook での明示停止は不要です。
-
-詳細は [iac/azure/start-stop-resources.tf](./iac/azure/start-stop-resources.tf) を参照してください。
-
-## GCP 運用
-
-### ログ分析 / BigQuery
-
-Cloud Logging のログを sink 経由で BigQuery にエクスポートし、SQL でクエリできます。 partition projection 相当の `use_partitioned_tables = true` で日付パーティションテーブルが自動作成されるため手動管理は不要です。
-
-| Sink 名 | ソース | BigQuery データセット |
-|---|---|---|
-| `*-lb-logs` | LB request log (`resource.type = http_load_balancer`) | `${app}_${env}_lb_logs` |
-| `*-run-logs` | Cloud Run コンテナログ | `${app}_${env}_cloud_run_logs` |
-| `*-armor-logs` | Cloud Armor 判定ログ (`enforcedSecurityPolicy.name`) | `${app}_${env}_armor_logs` |
-| `*-vpc-flow` | VPC Flow Logs | `${app}_${env}_vpc_flow_logs` |
-
-詳細は [IaC仕様書 5.13](./docs/iac-spec.md#5-gcp-インフラストラクチャ) を参照してください。
-
-### 監視アラーム
-
-Cloud Monitoring Alert Policy + Email 通知チャネルで Cloud Run と Cloud SQL の異常を検知します。 Pub/Sub topic も作成済みで、 Console から通知チャネルを追加する手順は [monitoring_alerts.tf](./iac/gcp/monitoring_alerts.tf) 冒頭のコメント参照。
-
-### 自動起動・停止
-
-Cloud Scheduler + Cloud Workflows で Cloud Run / Cloud SQL / Bastion VM を毎日 21:00 JST に自動停止します (`auto-start` は既定で paused、 土日 07:00 JST 起動)。
-
-### HTTPS / カスタムドメイン
-
-GCP の External Application LB は AWS CloudFront (`*.cloudfront.net`) / Azure Front Door (`*.azurefd.net`) と違い、 マネージドのデフォルト HTTPS ドメインを提供しません。 HTTPS を使うには:
-
-1. ドメインを用意 (任意のレジストラ)
-2. A レコードを LB IP に向ける
-3. `iac/gcp/terraform.tfvars` に `lb-domain = "your-domain"` 設定
-4. `terraform apply` で Google Managed SSL Certificate 自動発行 (15-60分)
-
-未設定時は HTTP のみ (PoC 用)。
+自動起動・停止のスケジュールは 3 クラウド共通で、 **停止: 毎日 21:00 JST / 起動: 土日 07:00 JST** (起動は既定で無効) です。
 
 ## DB 運用 (Prisma マイグレーション / バックアップ・復元)
 
@@ -289,6 +212,10 @@ DB スキーマは Prisma で 3 クラウド共通で管理し (`backend/sandbox
 
 第三者Web脆弱性診断を見据えたハードニングを適用済みです。適用済み項目・意図的に未適用とした項目・診断実施時の注意事項は [セキュリティ強化ガイド](./docs/security-hardening.md) を参照してください。
 
+## 実装時の検討事項 (アプリ側)
+
+テンプレート実装時に洗い出したアプリケーション側 (frontend / backend) の検討事項 (排他制御・例外制御・日時/TZ・i18n・テスト・依存バージョンアップ等) は、今後の改善対象として GitHub Issue で管理しています。一覧は [実装時の検討事項 (アプリ側)](./docs/app-considerations.md) を参照してください。
+
 ## ドキュメント
 
 | ドキュメント | 内容 |
@@ -299,6 +226,7 @@ DB スキーマは Prisma で 3 クラウド共通で管理し (`backend/sandbox
 | [AWS構成図](./docs/diagrams/aws-architecture.drawio.svg) | AWS インフラ構成図 (Draw.io SVG) |
 | [Azure構成図](./docs/diagrams/azure-architecture.drawio.svg) | Azure インフラ構成図 (Draw.io SVG) |
 | [CI/CDパイプライン図](./docs/diagrams/cicd-pipeline.drawio.svg) | AWS/Azure CI/CD 比較図 (Draw.io SVG, GCP は未反映) |
+| [クラウド別 運用ガイド](./docs/cloud-operations.md) | AWS/Azure/GCP のログ分析・監視アラーム・自動起動停止・HTTPS の構成と手順 |
 | [運用・調査コマンド](./docs/operations.md) | CloudWatch Logs・Athena・ECSヘルスチェック等の調査用コマンド集 |
 | [DB マイグレーション (Prisma)](./docs/db-migration.md) | `prisma migrate dev` / `migrate deploy` の流れ、 raw DDL の扱い、 重い DDL の注意点 |
 | [DB バックアップ・復元](./docs/db-backup-restore.md) | 3 クラウドのバックアップ機構・リカバリポイント確認・復元実行・接続情報切替・動作確認 |
@@ -306,6 +234,7 @@ DB スキーマは Prisma で 3 クラウド共通で管理し (`backend/sandbox
 | [ローカル開発ガイド](./docs/local-dev.md) | Windows / PowerShell 用 `dev-up.ps1` の使い方・前提・スクリプト動作内容 |
 | [Azure GitHub Actions セットアップガイド](./docs/azure-github-actions-setup.md) | GitHub Environments への Variables/Secrets 一括登録手順、 OIDC 設定、 トラブルシューティング、 マルチ環境拡張手順 |
 | [Front Door SKU 選択ガイド (Azure)](./docs/azure-frontdoor-sku.md) | Standard / Premium の違い、 Standard 採用理由、 Premium への upgrade 手順 |
+| [実装時の検討事項 (アプリ側)](./docs/app-considerations.md) | アプリ側の未対応・方針未確定事項 (設計/挙動・テスト・静的解析・依存バージョンアップ) と対応 Issue 一覧 |
 
 ## 正誤表
 
