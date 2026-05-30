@@ -36,6 +36,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Applicat
 | CI/CD (Azure) | GitHub Actions (OIDC) |
 | CI/CD (GCP) | GitHub Actions (OIDC / Workload Identity Federation) |
 | セキュリティスキャン | GitHub Actions (Trivy) |
+| 静的解析 (CI) | GitHub Actions (ESLint + `tsc --noEmit`, PR ゲート) |
 | 認証 | Auth0 (JWT / RS256) |
 
 ## ディレクトリ構成
@@ -56,7 +57,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Applicat
 ├── appendix/                    # 正誤表・補足資料
 └── .github/
     ├── CODEOWNERS               # レビュー必須設定
-    └── workflows/               # GitHub Actions CI (Trivy scan, Azure deploy)
+    └── workflows/               # GitHub Actions CI (Trivy scan, Lint/型チェック, Azure/GCP deploy)
 ```
 
 ## AWS / Azure / GCP リソース対応表
@@ -211,6 +212,23 @@ DB スキーマは Prisma で 3 クラウド共通で管理し (`backend/sandbox
 ## セキュリティ強化 (Web脆弱性診断 事前対応)
 
 第三者Web脆弱性診断を見据えたハードニングを適用済みです。適用済み項目・意図的に未適用とした項目・診断実施時の注意事項は [セキュリティ強化ガイド](./docs/security-hardening.md) を参照してください。
+
+## 静的解析 (Lint / 型チェック) の CI ゲート
+
+TypeScript (backend / frontend) の ESLint と型チェックを **PR 時点で自動検出する CI ゲート**を用意しています。これまでローカルの `yarn lint` 任せだった lint / 型エラー / 規約逸脱を、`main` への PR でブロックします。
+
+| 対象 | ワークフロー | ジョブ |
+|---|---|---|
+| backend (`backend/sandbox-backend`) | [.github/workflows/ci-backend.yaml](./.github/workflows/ci-backend.yaml) | **Lint & Type check** (`yarn lint:ci` + `yarn typecheck`) |
+| frontend (`frontend/sandbox-frontend`) | [.github/workflows/ci-frontend.yaml](./.github/workflows/ci-frontend.yaml) | **Lint & Type check** (`yarn lint:ci` + `yarn typecheck`) |
+
+- **非破壊・厳格**: CI 用の `lint:ci` は `--fix` を付けず `--max-warnings 0` で実行し、warning も失敗扱いにします (ローカル整形用の `lint` は従来どおり `--fix` 付き)。型チェックは backend `tsc --noEmit` / frontend `tsc -b --noEmit`。
+- **Trivy と並列実行**し、失敗時は既存パターンで Slack 通知します。
+- backend は `no-floating-promises` / `no-unsafe-argument` を **error に昇格**済み (`no-explicit-any` のみ off)。
+- 改行コードはリポジトリ root の [.gitattributes](./.gitattributes) (`* text=auto eol=lf`) で LF に正規化し、Windows の `core.autocrlf=true` 環境でも Prettier の CRLF 差分が CI で誤検出されないようにしています。
+- PR 必須化するには Branch protection の Required status checks に `Lint & Type check` を追加します (管理者権限が必要)。
+
+運用の詳細は [Backend仕様書](./docs/backend-spec.md) / [Frontend仕様書](./docs/frontend-spec.md) の「静的解析 / CI ゲート」節を参照してください。
 
 ## 実装時の検討事項 (アプリ側)
 

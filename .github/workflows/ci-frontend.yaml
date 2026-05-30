@@ -66,11 +66,40 @@ jobs:
           exit-code: '1'
           format: table
 
+  lint-typecheck:
+    name: Lint & Type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    defaults:
+      run:
+        working-directory: frontend/sandbox-frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.15.0
+          cache: yarn
+          cache-dependency-path: frontend/sandbox-frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: ESLint (no fix, fail on warnings)
+        run: yarn lint:ci
+
+      - name: Type check (tsc -b --noEmit)
+        run: yarn typecheck
+
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [trivy-scan]
+    needs: [trivy-scan, lint-typecheck]
     if: always() && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 
     steps:

@@ -18,7 +18,7 @@ function App() {
       logout();
     };
 
-    const [apiResponse, setApiResponse] = useState(null);
+    const [apiResponse, setApiResponse] = useState<unknown>(null);
     const { callApi } = useApiCaller();
 
     const handleCallProtected = async () => {
@@ -60,7 +60,7 @@ function App() {
           </button> 
           }
 
-        {apiResponse && (
+        {!!apiResponse && (
           <pre style={{ textAlign: 'left' }}>
             {JSON.stringify(apiResponse, null, 2)}
           </pre>

@@ -1,0 +1,12 @@
+# 改行コードを LF に正規化する。
+# Windows の core.autocrlf=true 環境でも作業ツリーを LF に保ち、
+# Prettier (eslint-plugin-prettier) が CI で CRLF 差分を誤検出しないようにする。
+* text=auto eol=lf
+
+# バイナリ・画像はテキスト変換しない
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary

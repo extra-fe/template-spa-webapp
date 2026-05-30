@@ -170,9 +170,23 @@ callApi<T>(
 | `yarn dev` | 開発サーバー起動（Vite） |
 | `yarn build` | TypeScriptコンパイル + プロダクションビルド |
 | `yarn preview` | ビルド結果のプレビュー |
-| `yarn lint` | ESLint実行 |
+| `yarn lint` | ESLint実行（ローカル用） |
+| `yarn lint:ci` | ESLint実行（`--max-warnings 0`。CI ゲート用 / 非破壊） |
+| `yarn typecheck` | 型チェック（`tsc -b --noEmit`） |
 
-## 10. デプロイ
+## 10. 静的解析 / CI ゲート
+
+PR (`pull_request` → `main`、`frontend/**` 変更時) で `.github/workflows/ci-frontend.yaml` の **Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。
+
+| チェック | コマンド | 内容 |
+|---|---|---|
+| ESLint | `yarn lint:ci` | `typescript-eslint` recommended + react-hooks / react-refresh。`--max-warnings 0` で warn も失敗扱い |
+| 型チェック | `yarn typecheck` | `tsc -b --noEmit` |
+
+- 改行コードはリポジトリ root の `.gitattributes`（`* text=auto eol=lf`）で LF に正規化。
+- Branch protection の Required status checks に `Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
+
+## 11. デプロイ
 
 ### AWS
 - `yarn build` で生成される `dist/` ディレクトリをS3バケットにアップロード

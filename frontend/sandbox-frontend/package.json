@@ -11,6 +11,8 @@
     "build": "tsc -b && vite build",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "lint": "eslint .",
+    "lint:ci": "eslint . --max-warnings 0",
+    "typecheck": "tsc -b --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {

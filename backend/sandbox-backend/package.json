@@ -17,6 +17,8 @@
     "start:prod": "node dist/main",
     "start:otel": "node --require ts-node/register --require ./src/otel/instrumentation.ts -r tsconfig-paths/register src/main.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint:ci": "eslint \"{src,apps,libs,test}/**/*.ts\" --max-warnings 0",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

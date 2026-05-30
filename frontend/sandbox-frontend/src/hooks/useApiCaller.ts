@@ -1,43 +1,47 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import { useCallback } from 'react';
 
 export const useApiCaller = () => {
   const { getAccessTokenSilently, isAuthenticated } = useAuth0();
   const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== 'false';
 
-  const callApi = async <T = any>(
-    path: string,
-    requiresAuth: boolean = true,
-    method: string = 'GET',
-    body?: unknown
-  ): Promise<T> => {
-    const url = `${import.meta.env.VITE_API_BASE_URL}${path}`;
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+  const callApi = useCallback(
+    async <T = unknown>(
+      path: string,
+      requiresAuth: boolean = true,
+      method: string = 'GET',
+      body?: unknown
+    ): Promise<T> => {
+      const url = `${import.meta.env.VITE_API_BASE_URL}${path}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-    if (requiresAuth && authEnabled && isAuthenticated) {
-      const token = await getAccessTokenSilently();
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+      if (requiresAuth && authEnabled && isAuthenticated) {
+        const token = await getAccessTokenSilently();
+        headers['Authorization'] = `Bearer ${token}`;
+      }
 
-    const config: AxiosRequestConfig = {
-      url,
-      method,
-      headers,
-      data: body,
-      withCredentials: true, // same as credentials: 'include'
-    };
+      const config: AxiosRequestConfig = {
+        url,
+        method,
+        headers,
+        data: body,
+        withCredentials: true, // same as credentials: 'include'
+      };
 
-    try {
-      const response = await axios.request<T>(config);
-      return response.data;
-    } catch (err) {
-      const axiosError = err as AxiosError;
-      const status = axiosError.response?.status ?? 'unknown';
-      throw new Error(`API call failed with status ${status}`);
-    }
-  };
+      try {
+        const response = await axios.request<T>(config);
+        return response.data;
+      } catch (err) {
+        const axiosError = err as AxiosError;
+        const status = axiosError.response?.status ?? 'unknown';
+        throw new Error(`API call failed with status ${status}`);
+      }
+    },
+    [getAccessTokenSilently, isAuthenticated, authEnabled]
+  );
 
   return { callApi };
 };

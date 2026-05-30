@@ -1,11 +1,11 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
     super({
-      log: process.env.PRISMA_LOG_LEVEL?.split(',') as any,
+      log: process.env.PRISMA_LOG_LEVEL?.split(',') as Prisma.LogLevel[],
     });
   }
 

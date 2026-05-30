@@ -23,20 +23,36 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
-      response.status(status).json(typeof body === 'string' ? { statusCode: status, message: body } : body);
+      response
+        .status(status)
+        .json(
+          typeof body === 'string'
+            ? { statusCode: status, message: body }
+            : body,
+        );
       return;
     }
 
     // 想定外エラー: サーバログには詳細を残し、クライアントには汎用メッセージのみ返す
     const isProduction = process.env.NODE_ENV === 'production';
-    const stack = exception instanceof Error ? exception.stack : String(exception);
-    this.logger.error(`Unhandled exception on ${request.method} ${request.url}`, stack);
+    const stack =
+      exception instanceof Error ? exception.stack : String(exception);
+    this.logger.error(
+      `Unhandled exception on ${request.method} ${request.url}`,
+      stack,
+    );
 
     const responseBody = isProduction
-      ? { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, message: 'Internal server error' }
+      ? {
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          message: 'Internal server error',
+        }
       : {
           statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-          message: exception instanceof Error ? exception.message : 'Internal server error',
+          message:
+            exception instanceof Error
+              ? exception.message
+              : 'Internal server error',
           stack: exception instanceof Error ? exception.stack : undefined,
         };
 
