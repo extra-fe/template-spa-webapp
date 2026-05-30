@@ -35,3 +35,6 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# tflint plugin cache (tflint --init で生成。バージョンは .tflint.hcl で固定するため不要)
+**/.tflint.hcl.lock
