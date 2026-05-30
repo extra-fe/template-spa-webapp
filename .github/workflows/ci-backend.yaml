@@ -151,6 +151,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: ESLint (no fix, fail on warnings)
         run: yarn lint:ci
 
