@@ -26,7 +26,7 @@ data "aws_ami" "amazon_linux_2023" {
 
 # 踏み台EC2: Session Manager経由でプライベートサブネット内のRDS等にアクセスする目的
 resource "aws_instance" "bastion" {
-  ami                         = "ami-0292622b22bd52948"
+  ami                         = data.aws_ami.amazon_linux_2023.id
   associate_public_ip_address = false
   iam_instance_profile        = aws_iam_instance_profile.bastion.name
   instance_type               = "t2.micro"

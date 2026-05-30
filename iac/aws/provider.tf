@@ -34,5 +34,9 @@ terraform {
       # provider更新は別途検証PRで実施すること。
       version = "1.33.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = ">= 3.6.0"
+    }
   }
 }

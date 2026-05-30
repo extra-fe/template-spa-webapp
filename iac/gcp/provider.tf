@@ -44,8 +44,3 @@ terraform {
     }
   }
 }
-
-# 現在のプロジェクト情報 (project number 等を参照する箇所がある)
-data "google_project" "self" {
-  project_id = var.gcp-project-id
-}

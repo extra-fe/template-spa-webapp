@@ -43,7 +43,7 @@ output "github_actions_variables_json" {
     GCP_BACKEND_SERVICE_NAME      = google_cloud_run_v2_service.backend.name
     GCP_FRONTEND_BUCKET           = google_storage_bucket.web.name
     GCP_URL_MAP_NAME              = google_compute_url_map.main.name
-    GCP_BACKEND_WORKING_DIRECTORY = "/${var.backend-src-root}"
+    GCP_BACKEND_WORKING_DIRECTORY  = "/${var.backend-src-root}"
     GCP_FRONTEND_WORKING_DIRECTORY = "/${var.frontend-src-root}"
     VITE_API_BASE_URL             = local.public_url
   })

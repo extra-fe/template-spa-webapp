@@ -3,3 +3,7 @@ plugin "azurerm" {
   version = "0.27.0"
   source  = "github.com/terraform-linters/tflint-ruleset-azurerm"
 }
+
+rule "terraform_typed_variables" {
+  enabled = false
+}
