@@ -1,0 +1,7 @@
+# terraform init -backend-config=backend.hcl 用のサンプル。
+# このファイルをコピーして backend.hcl を作成し、実値を埋める。
+# backend.hcl は gitignore 済み。
+# 値は bootstrap/ の `terraform output backend_config_hint` で確認できる。
+
+bucket = "sandbox-gcp-dev-tfstate-<GCP_PROJECT_ID>"
+prefix = "gcp/terraform.tfstate"

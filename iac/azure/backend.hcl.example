@@ -1,0 +1,9 @@
+# terraform init -backend-config=backend.hcl 用のサンプル。
+# このファイルをコピーして backend.hcl を作成し、実値を埋める。
+# backend.hcl は gitignore 済み。
+# 値は bootstrap/ の `terraform output backend_config_hint` で確認できる。
+
+resource_group_name  = "sandbox-dev-tfstate-rg"
+storage_account_name = "sandboxdev<RANDOM>tfstate"
+container_name       = "tfstate"
+key                  = "azure/terraform.tfstate"

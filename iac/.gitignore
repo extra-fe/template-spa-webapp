@@ -5,6 +5,12 @@
 *.tfstate
 *.tfstate.*
 
+# backend 部分設定の実値 (バケット名/アカウント ID 等を含む)。
+# サンプルの backend.hcl.example のみ追跡する。
+backend.hcl
+backend.*.hcl
+!backend.hcl.example
+
 # Crash log files
 crash.log
 crash.*.log
