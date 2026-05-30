@@ -55,6 +55,9 @@ jobs:
         with:
           terraform_version: "1.13.5"
 
+      - name: terraform fmt diff (差分確認用)
+        run: terraform fmt -diff -recursive iac/ || true
+
       - name: terraform fmt check (recursive)
         run: terraform fmt -check -recursive iac/
 
@@ -120,6 +123,7 @@ jobs:
           exit-code: "1"
           format: table
           skip-dirs: ".terraform"
+          trivyignores: iac/${{ matrix.cloud }}/.trivyignore
 
   notify-slack:
     name: Notify Slack
