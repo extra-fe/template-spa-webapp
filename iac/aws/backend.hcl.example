@@ -1,0 +1,8 @@
+# terraform init -backend-config=backend.hcl 用のサンプル。
+# このファイルをコピーして backend.hcl を作成し、実値を埋める。
+# backend.hcl は gitignore 済み (バケット名にアカウント ID を含むため)。
+# 値は bootstrap/ の `terraform output backend_config_hint` で確認できる。
+
+bucket = "sandbox-aws-dev-tfstate-<AWS_ACCOUNT_ID>"
+key    = "aws/terraform.tfstate"
+region = "ap-northeast-1"
