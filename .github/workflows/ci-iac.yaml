@@ -232,6 +232,7 @@ jobs:
                 -backend-config="storage_account_name=${{ vars.TF_STATE_SA_AZURE }}" \
                 -backend-config="container_name=${{ vars.TF_STATE_CONTAINER_AZURE }}" \
                 -backend-config="key=${{ vars.TF_STATE_KEY_AZURE }}" \
+                -backend-config="use_azuread_auth=true" \
                 -input=false -no-color
               ;;
           esac
@@ -409,6 +410,7 @@ jobs:
                 -backend-config="storage_account_name=${{ vars.TF_STATE_SA_AZURE }}" \
                 -backend-config="container_name=${{ vars.TF_STATE_CONTAINER_AZURE }}" \
                 -backend-config="key=${{ vars.TF_STATE_KEY_AZURE }}" \
+                -backend-config="use_azuread_auth=true" \
                 -input=false -no-color
               ;;
           esac

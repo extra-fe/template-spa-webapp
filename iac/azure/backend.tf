@@ -11,9 +11,8 @@
 # によりローカル state をリモートへ移行する。
 terraform {
   backend "azurerm" {
-    # ストレージアカウントキーではなく Azure AD (OIDC) で認証する。
-    # これにより GitHub Actions の plan/apply SP が listKeys 権限なしで state を読み書きできる。
-    # ローカル実行時も az login 済みの AAD 認証が使われる (Storage Account Contributor 不要)。
-    use_azuread_auth = true
+    # azurerm backend は Blob リースによるロックを内蔵するため追加設定は不要。
+    # use_azuread_auth は CI ワークフロー側の -backend-config で注入する
+    # (ローカルはキー認証、CI は AAD 認証と使い分けるため backend.tf には書かない)。
   }
 }
