@@ -1,0 +1,9 @@
+# フロントエンド配信用 GCS バケットが allUsers に objectViewer を付与。
+# Backend Bucket + Cloud CDN による静的アセット配信の標準パターンで意図的。
+# AWS の S3 + OAC とは設計思想が異なる (Cloud CDN cache fill SA が必要)。
+AVD-GCP-0001
+
+# Cloud SQL が全接続に TLS を要求していない (require_ssl が明示されていない)。
+# Prisma の DATABASE_URL に sslmode=require を指定して接続側で TLS を強制しているが、
+# サーバー側でも明示的に require_ssl = true を設定する対応を別途 Issue で行う予定 (#168)。
+AVD-GCP-0015
