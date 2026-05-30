@@ -12,5 +12,7 @@
 terraform {
   backend "azurerm" {
     # azurerm backend は Blob リースによるロックを内蔵するため追加設定は不要。
+    # use_azuread_auth は CI ワークフロー側の -backend-config で注入する
+    # (ローカルはキー認証、CI は AAD 認証と使い分けるため backend.tf には書かない)。
   }
 }

@@ -34,6 +34,34 @@ GitHub Actions で `terraform plan` (PR 時) / `terraform apply` (main マージ
 | `TF_STATE_CONTAINER_AZURE` | Variable | Azure Blob コンテナ名 | `tfstate` |
 | `TF_STATE_KEY_AZURE` | Variable | Azure Blob キー | `azure/terraform.tfstate` |
 
+### Terraform 変数 (クラウド固有値)
+
+plan/apply 実行時に CI が `ci.auto.tfvars` を生成して注入する値。
+
+| 変数名 | 登録種別 | 対象 | 説明 | 値の例 |
+|---|---|---|---|---|
+| `GCP_PROJECT_ID` | Variable | GCP | GCP プロジェクト ID | `my-spa-template-dev` |
+| `AWS_CODESTAR_CONNECTION_ARN` | Variable | AWS | CodeStar Connection の ARN | `arn:aws:codestar-connections:ap-northeast-1:123...:connection/xxx` |
+
+> `github-repository-name` は `${{ github.repository }}` から自動取得するため登録不要。  
+> `azure-subscription-id` は `secrets.AZURE_SUBSCRIPTION_ID` を流用するため追加登録不要。
+
+### Auth0 Secrets
+
+plan/apply 実行時に terraform provider が使用する Auth0 認証情報。
+
+| シークレット名 | 説明 | 値の取得元 |
+|---|---|---|
+| `TF_VAR_AUTH0_DOMAIN` | Auth0 テナントドメイン | terraform.tfvars の `auth0_domain` |
+| `TF_VAR_AUTH0_CLIENT_ID` | Auth0 管理用アプリ Client ID | terraform.tfvars の `auth0_client_id` |
+| `TF_VAR_AUTH0_CLIENT_SECRET` | Auth0 管理用アプリ Client Secret | terraform.tfvars の `auth0_client_secret` |
+
+```powershell
+gh secret set TF_VAR_AUTH0_DOMAIN        --body "<your-auth0-domain>"
+gh secret set TF_VAR_AUTH0_CLIENT_ID     --body "<your-auth0-client-id>"
+gh secret set TF_VAR_AUTH0_CLIENT_SECRET --body "<your-auth0-client-secret>"
+```
+
 ### OIDC 認証変数 (`TF_PLAN_*` / `TF_APPLY_*`)
 
 `iac/<cloud>/github_actions_terraform.tf` を apply 後に登録する。`terraform output github_actions_terraform` で確認できる。

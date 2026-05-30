@@ -87,6 +87,29 @@ resource "azurerm_role_assignment" "terraform_apply_owner" {
   principal_id         = azuread_service_principal.terraform_apply.object_id
 }
 
+# ---------- state backend へのアクセス権 ----------
+#
+# use_azuread_auth = true (backend.tf) で AAD 認証を使うため、
+# plan SP には Blob 読み取り / apply SP には Blob 読み書きが必要。
+# listKeys 権限は不要になる。
+# tfstate RG 名は既存変数から計算できるため新規変数は不要。
+
+locals {
+  tfstate_rg_id = "/subscriptions/${data.azurerm_client_config.current.subscription_id}/resourceGroups/${var.app-name}-${var.environment}-tfstate-rg"
+}
+
+resource "azurerm_role_assignment" "terraform_plan_tfstate_reader" {
+  scope                = local.tfstate_rg_id
+  role_definition_name = "Storage Blob Data Reader"
+  principal_id         = azuread_service_principal.terraform_plan.object_id
+}
+
+resource "azurerm_role_assignment" "terraform_apply_tfstate_contributor" {
+  scope                = local.tfstate_rg_id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = azuread_service_principal.terraform_apply.object_id
+}
+
 # ---------- outputs ----------
 
 output "github_actions_terraform" {
