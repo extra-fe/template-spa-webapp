@@ -152,7 +152,11 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Generate Prisma Client
+        # prisma.config.ts が DATABASE_URL を要求するためダミー値を渡す
+        # (generate は DB 接続しない。Dockerfile と同じ値)
         run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
       - name: ESLint (no fix, fail on warnings)
         run: yarn lint:ci
