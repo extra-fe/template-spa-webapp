@@ -24,14 +24,35 @@ terraform output backend_config_hint   # bucket / key / region を控える
 
 ### 2. 親 (iac/aws) のローカル state をリモートへ移行 (初回のみ)
 
-```bash
+```powershell
 cd iac/aws
 cp backend.hcl.example backend.hcl      # 1. の output の値で埋める
-terraform init -backend-config=backend.hcl -migrate-state
+terraform init "-backend-config=backend.hcl" -migrate-state
+# "Do you want to copy existing state?" → yes
 ```
 
 `-migrate-state` で既存のローカル `terraform.tfstate` が S3 へコピーされる。移行後は
 ローカルの `terraform.tfstate*` は不要 (gitignore 済み)。
+
+> PowerShell では `-backend-config=...` をクォートで囲む必要がある (`=` を含む引数が
+> 分割されるため)。
+
+### 3. GitHub Variables に登録 (CI 用)
+
+PR の plan / apply ワークフローが backend 設定を参照するため、リポジトリの Variables に登録する。
+
+```powershell
+cd iac/aws/bootstrap
+$out = terraform output -json backend_config_hint | ConvertFrom-Json
+gh variable set TF_STATE_BUCKET_AWS --body $out.bucket
+gh variable set TF_STATE_KEY_AWS    --body $out.key
+gh variable set TF_STATE_REGION_AWS --body $out.region
+```
+
+確認:
+```powershell
+gh variable list
+```
 
 ## 注意
 
