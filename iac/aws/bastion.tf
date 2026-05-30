@@ -1,26 +1,13 @@
-# Amazon Linux 2023 の最新AMIを動的に取得(踏み台EC2のベースイメージ)
+# 踏み台 EC2 で使用する AMI を image-id で固定取得する。
+# AMI を更新する際はこの values を新しい AMI ID に書き換えて apply すること
+# (バージョンアップ時は EC2 の replace が発生する点に注意)。
 data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
-    name   = "name"
-    values = ["al2023-ami-*-x86_64"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
+    name   = "image-id"
+    values = ["ami-0292622b22bd52948"]
   }
 }
 
