@@ -11,7 +11,9 @@ process.env.OTEL_LOG_LEVEL = process.env.OTEL_LOG_LEVEL || 'NONE';
 
 // OTLPエクスポーターの設定（Jaeger用）
 const traceExporter = new OTLPTraceExporter({
-  url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
+  url:
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+    'http://localhost:4318/v1/traces',
 });
 
 // 計装の設定
@@ -37,8 +39,14 @@ const sdk = new NodeSDK({
 // SDKの起動
 sdk.start();
 console.log('[OTel] SDK started with OTLP exporter');
-console.log('[OTel] Service name:', process.env.OTEL_SERVICE_NAME || 'sandbox-backend');
-console.log('[OTel] OTLP endpoint:', process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces');
+console.log(
+  '[OTel] Service name:',
+  process.env.OTEL_SERVICE_NAME || 'sandbox-backend',
+);
+console.log(
+  '[OTel] OTLP endpoint:',
+  process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
+);
 
 // グレースフルシャットダウン
 const shutdown = async () => {
@@ -52,5 +60,5 @@ const shutdown = async () => {
   }
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', () => void shutdown());
+process.on('SIGINT', () => void shutdown());

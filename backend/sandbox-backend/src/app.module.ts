@@ -12,12 +12,12 @@ import { RaceModule } from './race/race.module';
   imports: [
     HealthModule,
     ConfigModule.forRoot({
-      envFilePath:'.env'
+      envFilePath: '.env',
     }),
     AuthModule,
     PrismaModule,
     RaceModule,
-],
+  ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })

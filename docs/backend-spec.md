@@ -358,10 +358,26 @@ docker run -p 3000:3000 --env-file .env sandbox-backend
 | `yarn test` | ユニットテスト実行 |
 | `yarn test:e2e` | E2Eテスト実行 |
 | `yarn test:cov` | カバレッジ計測 |
-| `yarn lint` | ESLint実行（自動修正） |
+| `yarn lint` | ESLint実行（`--fix` で自動修正。ローカル用） |
+| `yarn lint:ci` | ESLint実行（`--fix` なし・`--max-warnings 0`。CI ゲート用 / 非破壊） |
+| `yarn typecheck` | 型チェック（`tsc --noEmit`） |
 | `yarn format` | Prettier実行 |
 
-## 14. テスト
+## 14. 静的解析 / CI ゲート
+
+PR (`pull_request` → `main`) で `.github/workflows/ci-backend.yaml` の **Backend Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。パスフィルタはジョブレベル (`changes` ジョブ + `if`) で行い、`backend/**` を含まない PR では当ジョブは skipped (= 必須チェックでは成功扱い) として報告される。
+
+| チェック | コマンド | 内容 |
+|---|---|---|
+| ESLint | `yarn lint:ci` | `typescript-eslint` recommendedTypeChecked + Prettier 連携。`--max-warnings 0` で warn も失敗扱い（非破壊・`--fix` なし） |
+| 型チェック | `yarn typecheck` | `tsc --noEmit` |
+
+- `eslint.config.mjs` で `no-floating-promises` / `no-unsafe-argument` は **error**（recommendedTypeChecked 既定）に統一済み。`no-explicit-any` のみ off。
+- Prettier 違反も ESLint エラーになるため、コミット前に `yarn lint`（自動修正）で整形しておくこと。
+- 改行コードはリポジトリ root の `.gitattributes`（`* text=auto eol=lf`）で LF に正規化。Windows の `core.autocrlf=true` 環境でも Prettier の CRLF 差分が CI で誤検出されない。
+- Branch protection の Required status checks に `Backend Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
+
+## 15. テスト
 
 | 項目 | 値 |
 |---|---|

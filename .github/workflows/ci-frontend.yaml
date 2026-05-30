@@ -1,22 +1,47 @@
 name: CI - Frontend (Trivy scan)
 
+# Required status check として安全に必須化できるよう、paths フィルタは
+# ワークフローレベルではなくジョブレベル (changes ジョブ + if 条件) で行う。
+# こうすると frontend を含まない PR でもワークフロー自体は起動し、各ジョブは
+# skipped (= 必須チェックでは成功扱い) として報告されるため、必須チェックが
+# 「Expected で永久 pending」になり PR がマージ不能になる問題を避けられる。
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/ci-frontend.yaml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect frontend changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci-frontend.yaml'
+
   trivy-scan:
     name: Trivy fs scan (deps + secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
       vuln-critical: ${{ steps.vuln-count.outputs.critical }}
@@ -66,12 +91,42 @@ jobs:
           exit-code: '1'
           format: table
 
+  lint-typecheck:
+    name: Frontend Lint & Type check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+    defaults:
+      run:
+        working-directory: frontend/sandbox-frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.15.0
+          cache: yarn
+          cache-dependency-path: frontend/sandbox-frontend/yarn.lock
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: ESLint (no fix, fail on warnings)
+        run: yarn lint:ci
+
+      - name: Type check (tsc -b --noEmit)
+        run: yarn typecheck
+
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [trivy-scan]
-    if: always() && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+    needs: [changes, trivy-scan, lint-typecheck]
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.frontend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 
     steps:
       - name: Set notification vars

@@ -37,7 +37,7 @@ const RaceApp: React.FC = () => {
     } catch (err) {
       console.error('Fetch races failed:', err);
     }
-  }, []); 
+  }, [callApi]);
   
   const fetchRace = async (id: number) => {
     try {

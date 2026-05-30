@@ -9,16 +9,19 @@ export class AppController {
 
   @Get()
   getHello(): string {
-    Logger.debug("hoge");
-    Logger.error("fuga");
+    Logger.debug('hoge');
+    Logger.error('fuga');
 
     return this.appService.getHello();
   }
 
   @Get('api/guest/connect-test')
   connectTest() {
-    Logger.debug("connect-test-debug");
-    return { message: 'GET api/guest/connect-test ok4', time: new Date().toISOString()};
+    Logger.debug('connect-test-debug');
+    return {
+      message: 'GET api/guest/connect-test ok4',
+      time: new Date().toISOString(),
+    };
   }
 
   @ApiBearerAuth('access-token') // ← .addBearerAuth() で指定した name を使う

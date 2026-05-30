@@ -28,8 +28,8 @@ export default tseslint.config(
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
+      // no-floating-promises / no-unsafe-argument は recommendedTypeChecked 既定の
+      // error を維持し、CI ゲート (--max-warnings 0) で確実に検出する。
     },
   },
 );
