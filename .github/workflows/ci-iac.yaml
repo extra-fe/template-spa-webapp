@@ -249,7 +249,9 @@ jobs:
         working-directory: iac/${{ matrix.cloud }}
         run: |
           set +e
-          terraform plan -out=tfplan -input=false -no-color \
+          # -lock=false: plan は state を書き換えないためロック不要。
+          # plan ロール (ReadOnly/viewer/Reader) に PutObject 権限を与えずに済む。
+          terraform plan -out=tfplan -input=false -no-color -lock=false \
             2>&1 | tee plan.txt
           echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
           set -e
