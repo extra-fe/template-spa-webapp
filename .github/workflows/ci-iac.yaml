@@ -253,11 +253,14 @@ jobs:
           # plan ロール (ReadOnly/viewer/Reader) に PutObject 権限を与えずに済む。
           terraform plan -out=tfplan -input=false -no-color -lock=false \
             2>&1 | tee plan.txt
-          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          TF_EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$TF_EXIT" >> "$GITHUB_OUTPUT"
           set -e
           # パブリックリポジトリのため Actions Summary にもフル出力は書かない。
           # アカウント ID / ARN 等を含む詳細はローカルで確認すること。
           # PR コメントへのサマリ行投稿は後続ステップで行う。
+          # plan 失敗時はステップを失敗させる (後続の PR コメントは if:always() で動く)
+          exit $TF_EXIT
         env:
           ARM_CLIENT_ID: ${{ vars.TF_PLAN_CLIENT_ID_AZURE }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -434,6 +437,8 @@ jobs:
         working-directory: iac/${{ matrix.cloud }}
         run: |
           # パブリックリポジトリのため plan フル出力は記録しない。
+          # pipefail で terraform の exit code をパイプ越しに伝播させる。
+          set -o pipefail
           terraform plan -out=tfplan -input=false -no-color \
             2>&1 | tee plan.txt
         env:
