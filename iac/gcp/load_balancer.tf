@@ -107,10 +107,10 @@ resource "google_compute_url_map" "main" {
   # SPA 配信時のセキュリティヘッダ (AWS cloudfront_response_headers_policy.spa 相当)
   default_route_action {
     cors_policy {
-      allow_origins   = ["*"]
-      allow_methods   = ["GET", "HEAD", "OPTIONS"]
-      max_age         = 3600
-      disabled        = false
+      allow_origins = ["*"]
+      allow_methods = ["GET", "HEAD", "OPTIONS"]
+      max_age       = 3600
+      disabled      = false
     }
   }
 
@@ -182,11 +182,11 @@ resource "google_compute_url_map" "main" {
       route_action {
         # API には CSP / Permissions-Policy を付与しない (AWS の api ポリシーと整合)
         cors_policy {
-          allow_origins        = ["*"]
-          allow_methods        = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
-          allow_headers        = ["*"]
-          max_age              = 3600
-          disabled             = false
+          allow_origins = ["*"]
+          allow_methods = ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"]
+          allow_headers = ["*"]
+          max_age       = 3600
+          disabled      = false
         }
       }
     }

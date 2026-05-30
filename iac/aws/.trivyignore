@@ -1,0 +1,50 @@
+# ALB は HTTP:80 のみ。HTTPS 終端は CloudFront で行うため意図的な設計。
+# 本番で ALB を直接公開する場合は HTTPS リスナーを追加すること。
+AVD-AWS-0054
+
+# ECS SG egress TCP 443 to 0.0.0.0/0: Auth0 JWKS / 外部 SaaS への通信に必要。
+# VPCエンドポイントでカバーできない外部エンドポイントへのアクセスを許可するため意図的。
+AVD-AWS-0104
+
+# ECR タグが mutable: CodePipeline がイメージを same tag で上書きするため意図的。
+# immutable 化は別途 Issue で検討 (#166)。
+AVD-AWS-0031
+
+# Athena ワークグループに暗号化未設定。クエリ結果は S3 に SSE-S3 で保存済み。
+# CMK 暗号化は別途 Issue で対応予定 (#166)。
+AVD-AWS-0006
+
+# ログ用 S3 バケット (WAF ログ等) のパブリックアクセスブロック未設定。
+# WAF ログバケットは名前プレフィックス "aws-waf-logs-" が必須の制約があり
+# public_access_block の一部設定に制約が生じる可能性がある。Issue #166 で調査予定。
+AVD-AWS-0086
+AVD-AWS-0087
+AVD-AWS-0091
+AVD-AWS-0093
+
+# S3 バケットを CMK ではなく SSE-S3 で暗号化。
+# テンプレートとしてコスト・運用複雑性を抑える設計方針。
+# 本番環境でセキュリティ要件が高い場合は CMK への移行を検討すること。Issue #166。
+AVD-AWS-0132
+
+# ECS クラスターのストレージ暗号化に CMK 未指定 (AES-256 が適用されている)。Issue #166。
+AVD-AWS-0079
+
+# Bastion EC2 が IMDSv2 を強制していない。
+# Session Manager 経由でのみアクセスするため SSRF リスクは低いが、別途 Issue で対応予定 (#166)。
+AVD-AWS-0028
+
+# Bastion のルートディスクが暗号化されていない。別途 Issue で対応予定 (#166)。
+AVD-AWS-0131
+
+# CloudWatch Alarms の SNS トピックが暗号化されていない。別途 Issue で対応予定 (#166)。
+AVD-AWS-0095
+
+# ECR イメージスキャンが無効。
+# CI (ci-backend.yaml) の Trivy image スキャンで代替済みだが、ECR 側スキャンも
+# 別途 Issue で有効化を検討予定 (#166)。
+AVD-AWS-0030
+
+# Fluent Bit Dockerfile で non-root USER が未設定。
+# Fluent Bit 公式イメージがルート動作前提のため。別途 Issue で対応予定 (#166)。
+AVD-DS-0002

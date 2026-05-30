@@ -13,10 +13,6 @@ variable "github-repository-name" {
   description = "【環境変数で指定】GitHubリポジトリ名 (owner/repo 形式)"
 }
 
-variable "github-owner" {
-  description = "GitHub Owner 名 (Workload Identity Federation の attribute_condition で使用)"
-}
-
 # GitHub Actions の Environment 名 (この Environment 名で実行された workflow のみが
 # WIF 経由でデプロイ SA を impersonate できる)
 variable "github-environment" {
@@ -58,11 +54,6 @@ variable "backend-src-root" {
   description = "backendのルートパス"
 }
 
-variable "target-branch" {
-  default     = "main"
-  description = "このブランチにPushされたときにCloud Buildをトリガー"
-}
-
 ## Cloud Storage のバケット名をユニークにするための乱数(グローバル一意制約への対応)
 resource "random_string" "suffix" {
   length  = 5
@@ -88,11 +79,6 @@ variable "subnet_connector_cidr_block" {
 variable "psa_range_cidr_block" {
   default     = "172.16.16.0/20"
   description = "Cloud SQL / Memorystore 等の Private Service Access 用予約 IP レンジ (/16-/24)"
-}
-
-variable "api-base-path" {
-  default     = "/api/*"
-  description = "backendのbase-path。このpathが増える場合は、URL マップに追加する"
 }
 
 variable "health-check-path" {

@@ -44,13 +44,13 @@ resource "aws_cloudwatch_log_group" "backend" {
 # - 環境変数: Auth0/CORS/ログレベル等
 # - secrets: DATABASE_URL を SSM SecureString から注入
 resource "aws_ecs_task_definition" "task_definition" {
-  container_definitions = jsonencode(
+  container_definitions    = jsonencode(
     [
       {
         cpu            = 0
         essential      = true
         image          = "${aws_ecr_repository.backend.repository_url}:latest"
-        name           = "${var.app-name}"
+        name           = var.app-name
         systemControls = []
         dependsOn = [
           {
@@ -158,16 +158,16 @@ resource "aws_ecs_task_definition" "task_definition" {
       },
     ]
   )
-  cpu                = "256"
-  execution_role_arn = aws_iam_role.execute_ecs_task.arn
-  family             = "${var.app-name}-${var.environment}-def"
-  memory             = "512"
-  network_mode       = "awsvpc"
+  cpu                      = "256"
+  execution_role_arn       = aws_iam_role.execute_ecs_task.arn
+  family                   = "${var.app-name}-${var.environment}-def"
+  memory                   = "512"
+  network_mode             = "awsvpc"
   requires_compatibilities = [
     "FARGATE",
   ]
-  tags          = {}
-  task_role_arn = aws_iam_role.ecs_task.arn
+  tags                     = {}
+  task_role_arn            = aws_iam_role.ecs_task.arn
 }
 
 
@@ -271,20 +271,20 @@ resource "aws_iam_role_policy_attachment" "managed-ECSTaskExecutionRolePolicy" {
 # ECSサービス: タスク定義を1コピー以上維持し、ALBターゲットグループに自動登録
 # - task_definition の変更は CodePipeline 経由で行うため lifecycle で無視
 resource "aws_ecs_service" "service" {
-  cluster                            = aws_ecs_cluster.cluster.arn
-  deployment_maximum_percent         = 200
+  cluster                             = aws_ecs_cluster.cluster.arn
+  deployment_maximum_percent          = 200
   deployment_minimum_healthy_percent = 100
-  desired_count                      = 1
-  enable_ecs_managed_tags            = true
-  enable_execute_command             = true  # ECS Execを有効化(調査・デバッグ用)。不要な場合はfalseに変更してapplyすること
-  health_check_grace_period_seconds  = 0
-  launch_type                        = "FARGATE"
-  name                               = "${var.app-name}-${var.environment}-service"
-  platform_version                   = "LATEST"
-  scheduling_strategy                = "REPLICA"
-  tags                               = {}
-  task_definition                    = "${aws_ecs_task_definition.task_definition.id}:${aws_ecs_task_definition.task_definition.revision}"
-  wait_for_steady_state              = false
+  desired_count                       = 1
+  enable_ecs_managed_tags             = true
+  enable_execute_command              = true  # ECS Execを有効化(調査・デバッグ用)。不要な場合はfalseに変更してapplyすること
+  health_check_grace_period_seconds   = 0
+  launch_type                         = "FARGATE"
+  name                                = "${var.app-name}-${var.environment}-service"
+  platform_version                    = "LATEST"
+  scheduling_strategy                 = "REPLICA"
+  tags                                = {}
+  task_definition                     = "${aws_ecs_task_definition.task_definition.id}:${aws_ecs_task_definition.task_definition.revision}"
+  wait_for_steady_state               = false
   deployment_circuit_breaker {
     enable   = false
     rollback = false

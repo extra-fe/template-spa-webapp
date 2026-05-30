@@ -1,0 +1,162 @@
+name: CI - IaC (Terraform static analysis)
+
+# Terraform (iac/aws, iac/azure, iac/gcp) の静的解析を PR 時に自動実行する。
+# 運用方針の詳細は docs/iac-spec.md「6.2 IaC 静的解析 CI」を参照。
+#
+# Required status check として安全に必須化できるよう、paths フィルタは
+# ワークフローレベルではなくジョブレベル (changes ジョブ + if 条件) で行う。
+# こうすると iac/ を含まない PR でもワークフロー自体は起動し、各ジョブは
+# skipped (= 必須チェックでは成功扱い) として報告されるため、必須チェックが
+# 「Expected で永久 pending」になり PR がマージ不能になる問題を避けられる。
+"on":
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    outputs:
+      iac: ${{ steps.filter.outputs.iac }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect IaC changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            iac:
+              - 'iac/**'
+              - '.github/workflows/ci-iac.yaml'
+
+  fmt:
+    name: terraform fmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.iac == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.5"
+
+      - name: terraform fmt diff (差分確認用)
+        run: terraform fmt -diff -recursive iac/ || true
+
+      - name: terraform fmt check (recursive)
+        run: terraform fmt -check -recursive iac/
+
+  analyze:
+    name: Analyze (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.iac == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, azure, gcp]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── terraform validate ──────────────────────────────────────────────────
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.5"
+
+      - name: terraform init (no backend)
+        # -backend=false: バックエンド初期化をスキップしプロバイダのみ取得。
+        # lock.hcl が windows_amd64 のみの場合、linux_amd64 向けバイナリを追加取得する。
+        working-directory: iac/${{ matrix.cloud }}
+        run: terraform init -backend=false -input=false -no-color
+
+      - name: terraform validate
+        working-directory: iac/${{ matrix.cloud }}
+        run: terraform validate -no-color
+
+      # ── tflint ─────────────────────────────────────────────────────────────
+      - name: Setup tflint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.54.0
+
+      - name: tflint init (download plugins)
+        working-directory: iac/${{ matrix.cloud }}
+        run: tflint --init
+        env:
+          # GitHub レート制限を避けるため Token を渡す
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: tflint
+        working-directory: iac/${{ matrix.cloud }}
+        run: tflint --format=compact
+
+      # ── Trivy misconfig ────────────────────────────────────────────────────
+      - name: Trivy misconfig scan
+        # CRITICAL/HIGH の設定ミスを gate 化 (exit-code: 1)。
+        # 既知の誤検知を抑制する場合は iac/<cloud>/.trivyignore にチェック ID を記載する。
+        # 例: AVD-AWS-0001  # S3 バケット公開アクセスブロック - 意図的に無効化
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: iac/${{ matrix.cloud }}
+          scanners: misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          format: table
+          skip-dirs: ".terraform"
+          trivyignores: iac/${{ matrix.cloud }}/.trivyignore
+
+  notify-slack:
+    name: Notify Slack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [changes, fmt, analyze]
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.iac == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+
+    steps:
+      - name: Set notification vars
+        env:
+          JOB_FAILED: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: |
+          if [[ "$JOB_FAILED" == "true" ]]; then
+            echo "RESULT=:x: Failed" >> "$GITHUB_ENV"
+            echo "COLOR=danger" >> "$GITHUB_ENV"
+          else
+            echo "RESULT=:white_check_mark: Passed" >> "$GITHUB_ENV"
+            echo "COLOR=good" >> "$GITHUB_ENV"
+          fi
+
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "attachments": [
+                {
+                  "color": "${{ env.COLOR }}",
+                  "mrkdwn_in": ["text"],
+                  "text": "${{ env.RESULT }} *CI - IaC (Terraform static analysis)*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}` | *Commit:* `${{ github.sha }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                }
+              ]
+            }

@@ -37,6 +37,7 @@ User ── HTTPS ──> CloudFront (+ WAF v2) / Front Door / External Applicat
 | CI/CD (GCP) | GitHub Actions (OIDC / Workload Identity Federation) |
 | セキュリティスキャン | GitHub Actions (Trivy) |
 | 静的解析 (CI) | GitHub Actions (ESLint + `tsc --noEmit`, PR ゲート) |
+| IaC 静的解析 (CI) | GitHub Actions (terraform fmt / validate / tflint / Trivy misconfig, PR ゲート) |
 | 認証 | Auth0 (JWT / RS256) |
 
 ## ディレクトリ構成
@@ -218,6 +219,23 @@ DB スキーマは Prisma で 3 クラウド共通で管理し (`backend/sandbox
 TypeScript (backend / frontend) の ESLint と型チェックを **PR 時点で自動検出する CI ゲート**を用意しています。これまでローカルの `yarn lint` 任せだった lint / 型エラー / 規約逸脱を、`main` への PR でブロックします。`lint:ci` は `--max-warnings 0` の非破壊実行で Trivy と並列に走り、対象外 PR では skipped となるようジョブレベルでパスフィルタしています。
 
 構成・設計上のポイント・Branch protection 必須化手順の詳細は [静的解析 (Lint / 型チェック) の CI ゲート](./docs/ci-static-analysis.md) を参照してください。
+
+## IaC 静的解析 (Terraform) の CI ゲート
+
+`iac/` 配下の変更を含む PR に対して **terraform fmt / validate / tflint / Trivy misconfig** を自動実行する CI ゲート (`ci-iac.yaml`) を用意しています。フォーマット崩れ・構文エラー・プロバイダ固有の命名規則違反・IaC 設定ミス (暗号化未設定・パブリックアクセス許可等) を PR 時点で検出します。
+
+- **terraform fmt**: 全クラウド (`iac/aws` / `iac/azure` / `iac/gcp`) を一括チェック
+- **terraform validate**: `terraform init -backend=false` でプロバイダのみ取得してから構文検証（クラウド認証不要）
+- **tflint**: 各クラウドの `.tflint.hcl` でプロバイダ固有ルールセット (`tflint-ruleset-aws` / `azurerm` / `google`) を有効化
+- **Trivy misconfig**: CRITICAL/HIGH の設定ミスを gate 化。既知の意図的な設定は `iac/<cloud>/.trivyignore` で抑制
+
+構成・運用方針・Required status checks 設定手順は [IaC仕様書 §6.2](./docs/iac-spec.md) を参照してください。
+
+### PR ごとに複数の CI ワークフローが動くのは正常
+
+すべての CI ワークフロー (`ci-iac.yaml` / `ci-frontend.yaml` / `ci-backend.yaml`) は `pull_request: branches: [main]` をトリガーに登録しているため、どのファイルを変更した PR でも全ワークフローが起動します。ただし **実際に処理をするかどうかはジョブレベルのパスフィルタで制御**しており、対象外のファイルしか変更していない場合は後続ジョブがすべて **skipped（= 成功扱い）** で即終了します。
+
+この設計にしている理由: ワークフローレベルで `paths` フィルタを付けると、対象外 PR ではワークフロー自体が起動しなくなります。Required status check に登録したジョブが「Expected — Waiting for status」のまま pending になり、PR がマージ不能になる問題を防ぐためです。
 
 ## 実装時の検討事項 (アプリ側)
 

@@ -12,15 +12,15 @@ locals {
   database_url = join("",
     [
       "postgresql://",
-      "${azurerm_postgresql_flexible_server.db_server.administrator_login}",
+      azurerm_postgresql_flexible_server.db_server.administrator_login,
       ":",
-      "${local.encoded_pw}",
+      local.encoded_pw,
       "@",
-      "${azurerm_postgresql_flexible_server.db_server.fqdn}",
+      azurerm_postgresql_flexible_server.db_server.fqdn,
       ":",
       "5432",
       "/",
-      "${azurerm_postgresql_flexible_server_database.db.name}",
+      azurerm_postgresql_flexible_server_database.db.name,
       "?",
       "sslmode=require"
     ]

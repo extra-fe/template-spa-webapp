@@ -40,8 +40,8 @@ resource "time_sleep" "wait_for_apis" {
 # (Backend Bucket への IAM 付与より前にこの SA を存在させる必要がある)
 resource "google_project_service_identity" "compute" {
   provider = google-beta
-  project  = var.gcp-project-id
-  service  = "compute.googleapis.com"
+  project = var.gcp-project-id
+  service = "compute.googleapis.com"
 
   depends_on = [time_sleep.wait_for_apis]
 }
@@ -49,8 +49,8 @@ resource "google_project_service_identity" "compute" {
 # Cloud Monitoring の通知用 SA を先に作成
 resource "google_project_service_identity" "monitoring" {
   provider = google-beta
-  project  = var.gcp-project-id
-  service  = "monitoring.googleapis.com"
+  project = var.gcp-project-id
+  service = "monitoring.googleapis.com"
 
   depends_on = [time_sleep.wait_for_apis]
 }
