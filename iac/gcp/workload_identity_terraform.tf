@@ -39,6 +39,15 @@ resource "google_project_iam_member" "terraform_plan_viewer" {
   member  = "serviceAccount:${google_service_account.terraform_plan.email}"
 }
 
+# Storage バケットの IAM ポリシー読み取り
+# roles/viewer には storage.buckets.getIamPolicy が含まれないため個別付与が必要。
+# terraform plan が google_storage_bucket_iam_member リソースの差分を計算する際に使用する。
+resource "google_project_iam_member" "terraform_plan_storage_legacy_reader" {
+  project = var.gcp-project-id
+  role    = "roles/storage.legacyBucketReader"
+  member  = "serviceAccount:${google_service_account.terraform_plan.email}"
+}
+
 # state バケットの読み取り
 resource "google_storage_bucket_iam_member" "terraform_plan_state_reader" {
   bucket = data.google_storage_bucket.tfstate.name
