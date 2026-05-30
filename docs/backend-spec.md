@@ -365,7 +365,7 @@ docker run -p 3000:3000 --env-file .env sandbox-backend
 
 ## 14. 静的解析 / CI ゲート
 
-PR (`pull_request` → `main`、`backend/**` 変更時) で `.github/workflows/ci-backend.yaml` の **Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。
+PR (`pull_request` → `main`) で `.github/workflows/ci-backend.yaml` の **Backend Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。パスフィルタはジョブレベル (`changes` ジョブ + `if`) で行い、`backend/**` を含まない PR では当ジョブは skipped (= 必須チェックでは成功扱い) として報告される。
 
 | チェック | コマンド | 内容 |
 |---|---|---|
@@ -375,7 +375,7 @@ PR (`pull_request` → `main`、`backend/**` 変更時) で `.github/workflows/c
 - `eslint.config.mjs` で `no-floating-promises` / `no-unsafe-argument` は **error**（recommendedTypeChecked 既定）に統一済み。`no-explicit-any` のみ off。
 - Prettier 違反も ESLint エラーになるため、コミット前に `yarn lint`（自動修正）で整形しておくこと。
 - 改行コードはリポジトリ root の `.gitattributes`（`* text=auto eol=lf`）で LF に正規化。Windows の `core.autocrlf=true` 環境でも Prettier の CRLF 差分が CI で誤検出されない。
-- Branch protection の Required status checks に `Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
+- Branch protection の Required status checks に `Backend Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
 
 ## 15. テスト
 

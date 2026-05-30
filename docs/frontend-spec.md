@@ -176,7 +176,7 @@ callApi<T>(
 
 ## 10. 静的解析 / CI ゲート
 
-PR (`pull_request` → `main`、`frontend/**` 変更時) で `.github/workflows/ci-frontend.yaml` の **Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。
+PR (`pull_request` → `main`) で `.github/workflows/ci-frontend.yaml` の **Frontend Lint & Type check** ジョブが Trivy と並列に実行され、失敗時は Slack 通知される。パスフィルタはジョブレベル (`changes` ジョブ + `if`) で行い、`frontend/**` を含まない PR では当ジョブは skipped (= 必須チェックでは成功扱い) として報告される。
 
 | チェック | コマンド | 内容 |
 |---|---|---|
@@ -184,7 +184,7 @@ PR (`pull_request` → `main`、`frontend/**` 変更時) で `.github/workflows/
 | 型チェック | `yarn typecheck` | `tsc -b --noEmit` |
 
 - 改行コードはリポジトリ root の `.gitattributes`（`* text=auto eol=lf`）で LF に正規化。
-- Branch protection の Required status checks に `Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
+- Branch protection の Required status checks に `Frontend Lint & Type check` を追加すると PR 必須化できる（管理者権限が必要）。
 
 ## 11. デプロイ
 

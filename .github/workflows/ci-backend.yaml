@@ -1,26 +1,51 @@
 name: CI - Backend (Trivy scan)
 
+# Required status check として安全に必須化できるよう、paths フィルタは
+# ワークフローレベルではなくジョブレベル (changes ジョブ + if 条件) で行う。
+# こうすると backend を含まない PR でもワークフロー自体は起動し、各ジョブは
+# skipped (= 必須チェックでは成功扱い) として報告されるため、必須チェックが
+# 「Expected で永久 pending」になり PR がマージ不能になる問題を避けられる。
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/ci-backend.yaml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   BACKEND_DIR: backend/sandbox-backend
   IMAGE_NAME: sandbox-backend:ci-${{ github.sha }}
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Detect backend changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci-backend.yaml'
+
   trivy-fs:
     name: Trivy fs scan (deps + secrets)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
       vuln-critical: ${{ steps.vuln-count.outputs.critical }}
@@ -74,7 +99,8 @@ jobs:
     name: Trivy image scan (Docker build, no push)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
     outputs:
       vuln-high: ${{ steps.vuln-count.outputs.high }}
       vuln-critical: ${{ steps.vuln-count.outputs.critical }}
@@ -129,10 +155,11 @@ jobs:
           trivyignores: ${{ env.BACKEND_DIR }}/.trivyignore
 
   lint-typecheck:
-    name: Lint & Type check
+    name: Backend Lint & Type check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor)
+    needs: changes
+    if: (github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
@@ -168,8 +195,8 @@ jobs:
     name: Notify Slack
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [trivy-fs, trivy-image, lint-typecheck]
-    if: always() && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
+    needs: [changes, trivy-fs, trivy-image, lint-typecheck]
+    if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.backend == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 
     steps:
       - name: Set notification vars
