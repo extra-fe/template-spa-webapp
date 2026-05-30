@@ -1,23 +1,36 @@
-name: CI - IaC (Terraform static analysis)
+name: CI - IaC (Terraform)
 
-# Terraform (iac/aws, iac/azure, iac/gcp) の静的解析を PR 時に自動実行する。
-# 運用方針の詳細は docs/iac-spec.md「6.2 IaC 静的解析 CI」を参照。
+# Terraform (iac/aws / iac/azure / iac/gcp) の CI/CD ワークフロー。
+# 運用方針の詳細は docs/iac-spec.md・docs/iac-cicd-setup.md を参照。
+#
+# ┌─ pull_request ─────────────────────────────────────────────────────────┐
+# │  fmt → analyze (静的解析) → plan → PR コメント → Slack 通知           │
+# └───────────────────────────────────────────────────────────────────────┘
+# ┌─ push to main ─────────────────────────────────────────────────────────┐
+# │  fmt → analyze (静的解析) → apply (iac-apply 承認ゲート) → Slack 通知  │
+# └───────────────────────────────────────────────────────────────────────┘
 #
 # Required status check として安全に必須化できるよう、paths フィルタは
 # ワークフローレベルではなくジョブレベル (changes ジョブ + if 条件) で行う。
-# こうすると iac/ を含まない PR でもワークフロー自体は起動し、各ジョブは
-# skipped (= 必須チェックでは成功扱い) として報告されるため、必須チェックが
-# 「Expected で永久 pending」になり PR がマージ不能になる問題を避けられる。
+# こうすると iac/ を含まない PR でも全ジョブが skipped (= 必須チェックで成功扱い) になる。
+#
+# 必要な GitHub Variables / Secrets: docs/iac-cicd-setup.md を参照。
 "on":
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write  # plan 結果を PR コメントに投稿するため
+  id-token: write       # OIDC 認証 (plan/apply) のため
 
 jobs:
+  # ────────────────────────────────────────────────────────────────────────
+  # 変更検出
+  # ────────────────────────────────────────────────────────────────────────
   changes:
     name: Detect changes
     runs-on: ubuntu-latest
@@ -39,6 +52,9 @@ jobs:
               - 'iac/**'
               - '.github/workflows/ci-iac.yaml'
 
+  # ────────────────────────────────────────────────────────────────────────
+  # 静的解析 (plan/apply の前段ゲート)
+  # ────────────────────────────────────────────────────────────────────────
   fmt:
     name: terraform fmt
     runs-on: ubuntu-latest
@@ -76,7 +92,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── terraform validate ──────────────────────────────────────────────────
+      # ── terraform validate ──────────────────────────────────────────────
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -92,7 +108,7 @@ jobs:
         working-directory: iac/${{ matrix.cloud }}
         run: terraform validate -no-color
 
-      # ── tflint ─────────────────────────────────────────────────────────────
+      # ── tflint ─────────────────────────────────────────────────────────
       - name: Setup tflint
         uses: terraform-linters/setup-tflint@v4
         with:
@@ -109,11 +125,10 @@ jobs:
         working-directory: iac/${{ matrix.cloud }}
         run: tflint --format=compact
 
-      # ── Trivy misconfig ────────────────────────────────────────────────────
+      # ── Trivy misconfig ─────────────────────────────────────────────────
       - name: Trivy misconfig scan
         # CRITICAL/HIGH の設定ミスを gate 化 (exit-code: 1)。
         # 既知の誤検知を抑制する場合は iac/<cloud>/.trivyignore にチェック ID を記載する。
-        # 例: AVD-AWS-0001  # S3 バケット公開アクセスブロック - 意図的に無効化
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -125,11 +140,321 @@ jobs:
           skip-dirs: ".terraform"
           trivyignores: iac/${{ matrix.cloud }}/.trivyignore
 
+  # ────────────────────────────────────────────────────────────────────────
+  # terraform plan (pull_request のみ / fmt+analyze 通過後)
+  # ────────────────────────────────────────────────────────────────────────
+  plan:
+    name: Plan (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [changes, fmt, analyze]
+    if: github.event_name == 'pull_request' && needs.changes.outputs.iac == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, azure, gcp]
+    # 同一ブランチ・同一クラウドの plan は最新のみ残す (古い plan はキャンセル)
+    concurrency:
+      group: terraform-plan-${{ matrix.cloud }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.5"
+
+      # ── OIDC 認証 (クラウド別) ────────────────────────────────────────
+      - name: AWS OIDC auth (plan)
+        if: matrix.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_PLAN_ROLE_ARN_AWS }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: GCP OIDC auth (plan)
+        if: matrix.cloud == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.TF_WIF_PROVIDER_GCP }}
+          service_account: ${{ vars.TF_PLAN_SA_GCP }}
+
+      # Azure は ARM_* 環境変数で azurerm provider が直接 OIDC トークンを取得する
+      # (id-token: write 権限が付与されていれば azure/login action は不要)
+
+      # ── CI 用 tfvars 生成 ──────────────────────────────────────────────
+      - name: Create CI tfvars
+        # *.auto.tfvars は terraform が自動ロードする。
+        # 変数名にハイフンを含む場合 TF_VAR_* 環境変数が使えないため、
+        # CI 実行時のみ ci.auto.tfvars を生成して値を注入する。
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          cat > ci.auto.tfvars <<EOF
+          github-repository-name = "${{ github.repository }}"
+          EOF
+
+          case "${{ matrix.cloud }}" in
+            aws)
+              echo 'codestar-connection-arn = "${{ vars.AWS_CODESTAR_CONNECTION_ARN }}"' >> ci.auto.tfvars
+              ;;
+            gcp)
+              echo 'gcp-project-id = "${{ vars.GCP_PROJECT_ID }}"' >> ci.auto.tfvars
+              ;;
+            azure)
+              echo 'azure-subscription-id = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"' >> ci.auto.tfvars
+              ;;
+          esac
+
+      # ── terraform init (リモート backend) ──────────────────────────────
+      - name: terraform init
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          case "${{ matrix.cloud }}" in
+            aws)
+              terraform init \
+                -backend-config="bucket=${{ vars.TF_STATE_BUCKET_AWS }}" \
+                -backend-config="key=${{ vars.TF_STATE_KEY_AWS }}" \
+                -backend-config="region=${{ vars.TF_STATE_REGION_AWS }}" \
+                -input=false -no-color
+              ;;
+            gcp)
+              terraform init \
+                -backend-config="bucket=${{ vars.TF_STATE_BUCKET_GCP }}" \
+                -backend-config="prefix=${{ vars.TF_STATE_PREFIX_GCP }}" \
+                -input=false -no-color
+              ;;
+            azure)
+              terraform init \
+                -backend-config="resource_group_name=${{ vars.TF_STATE_RG_AZURE }}" \
+                -backend-config="storage_account_name=${{ vars.TF_STATE_SA_AZURE }}" \
+                -backend-config="container_name=${{ vars.TF_STATE_CONTAINER_AZURE }}" \
+                -backend-config="key=${{ vars.TF_STATE_KEY_AZURE }}" \
+                -input=false -no-color
+              ;;
+          esac
+        env:
+          # Azure: azurerm backend が ARM_* を参照してリモート state に接続する
+          ARM_CLIENT_ID: ${{ vars.TF_PLAN_CLIENT_ID_AZURE }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+
+      # ── terraform plan ─────────────────────────────────────────────────
+      - name: terraform plan
+        id: plan
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          set +e
+          terraform plan -out=tfplan -input=false -no-color \
+            2>&1 | tee plan.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          set -e
+          # plan 出力をサマリに追記 (GitHub Actions の Summary)
+          echo '### terraform plan — ${{ matrix.cloud }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 plan.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          ARM_CLIENT_ID: ${{ vars.TF_PLAN_CLIENT_ID_AZURE }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+          TF_VAR_auth0_domain: ${{ secrets.TF_VAR_AUTH0_DOMAIN }}
+          TF_VAR_auth0_client_id: ${{ secrets.TF_VAR_AUTH0_CLIENT_ID }}
+          TF_VAR_auth0_client_secret: ${{ secrets.TF_VAR_AUTH0_CLIENT_SECRET }}
+
+      # ── PR コメントに plan 結果を投稿 (更新/新規) ─────────────────────
+      - name: Post plan result to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const cloud = '${{ matrix.cloud }}';
+            const outcome = '${{ steps.plan.outcome }}';
+            const icon = outcome === 'success' ? '✅' : '❌';
+
+            let plan = '';
+            try {
+              plan = fs.readFileSync(`iac/${cloud}/plan.txt`, 'utf8');
+            } catch (_) {
+              plan = '(plan output not available)';
+            }
+            const MAX = 60000;
+            if (plan.length > MAX) {
+              plan = plan.slice(0, MAX) + '\n\n... (出力が長すぎるため省略。GitHub Actions の Summary で全文を確認してください)';
+            }
+
+            const marker = `<!-- tf-plan-${cloud} -->`;
+            const body = `${marker}
+            ### ${icon} terraform plan — \`${cloud}\`
+
+            <details><summary>Plan output (クリックで展開)</summary>
+
+            \`\`\`
+            ${plan}
+            \`\`\`
+            </details>`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+  # ────────────────────────────────────────────────────────────────────────
+  # terraform apply (push to main のみ / iac-apply 承認ゲート)
+  # ────────────────────────────────────────────────────────────────────────
+  apply:
+    name: Apply (${{ matrix.cloud }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [changes, fmt, analyze]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.changes.outputs.iac == 'true'
+    # GitHub Environment "iac-apply" の必須レビュアー承認後に実行される
+    environment: iac-apply
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: [aws, azure, gcp]
+    # クラウドごとに直列化 (同時 apply による state ロック競合を防ぐ)
+    concurrency:
+      group: terraform-apply-${{ matrix.cloud }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.13.5"
+
+      # ── OIDC 認証 (クラウド別) ────────────────────────────────────────
+      - name: AWS OIDC auth (apply)
+        if: matrix.cloud == 'aws'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.TF_APPLY_ROLE_ARN_AWS }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: GCP OIDC auth (apply)
+        if: matrix.cloud == 'gcp'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.TF_WIF_PROVIDER_GCP }}
+          service_account: ${{ vars.TF_APPLY_SA_GCP }}
+
+      # ── CI 用 tfvars 生成 ──────────────────────────────────────────────
+      - name: Create CI tfvars
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          cat > ci.auto.tfvars <<EOF
+          github-repository-name = "${{ github.repository }}"
+          EOF
+
+          case "${{ matrix.cloud }}" in
+            aws)
+              echo 'codestar-connection-arn = "${{ vars.AWS_CODESTAR_CONNECTION_ARN }}"' >> ci.auto.tfvars
+              ;;
+            gcp)
+              echo 'gcp-project-id = "${{ vars.GCP_PROJECT_ID }}"' >> ci.auto.tfvars
+              ;;
+            azure)
+              echo 'azure-subscription-id = "${{ secrets.AZURE_SUBSCRIPTION_ID }}"' >> ci.auto.tfvars
+              ;;
+          esac
+
+      # ── terraform init (リモート backend) ──────────────────────────────
+      - name: terraform init
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          case "${{ matrix.cloud }}" in
+            aws)
+              terraform init \
+                -backend-config="bucket=${{ vars.TF_STATE_BUCKET_AWS }}" \
+                -backend-config="key=${{ vars.TF_STATE_KEY_AWS }}" \
+                -backend-config="region=${{ vars.TF_STATE_REGION_AWS }}" \
+                -input=false -no-color
+              ;;
+            gcp)
+              terraform init \
+                -backend-config="bucket=${{ vars.TF_STATE_BUCKET_GCP }}" \
+                -backend-config="prefix=${{ vars.TF_STATE_PREFIX_GCP }}" \
+                -input=false -no-color
+              ;;
+            azure)
+              terraform init \
+                -backend-config="resource_group_name=${{ vars.TF_STATE_RG_AZURE }}" \
+                -backend-config="storage_account_name=${{ vars.TF_STATE_SA_AZURE }}" \
+                -backend-config="container_name=${{ vars.TF_STATE_CONTAINER_AZURE }}" \
+                -backend-config="key=${{ vars.TF_STATE_KEY_AZURE }}" \
+                -input=false -no-color
+              ;;
+          esac
+        env:
+          ARM_CLIENT_ID: ${{ vars.TF_APPLY_CLIENT_ID_AZURE }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+
+      # ── terraform plan -out=tfplan (apply 直前に差分確認) ──────────────
+      - name: terraform plan
+        working-directory: iac/${{ matrix.cloud }}
+        run: |
+          terraform plan -out=tfplan -input=false -no-color \
+            2>&1 | tee plan.txt
+          echo '### terraform plan (pre-apply) — ${{ matrix.cloud }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          tail -20 plan.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+        env:
+          ARM_CLIENT_ID: ${{ vars.TF_APPLY_CLIENT_ID_AZURE }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+          TF_VAR_auth0_domain: ${{ secrets.TF_VAR_AUTH0_DOMAIN }}
+          TF_VAR_auth0_client_id: ${{ secrets.TF_VAR_AUTH0_CLIENT_ID }}
+          TF_VAR_auth0_client_secret: ${{ secrets.TF_VAR_AUTH0_CLIENT_SECRET }}
+
+      # ── terraform apply (保存済み plan を適用) ─────────────────────────
+      - name: terraform apply
+        working-directory: iac/${{ matrix.cloud }}
+        run: terraform apply -input=false -no-color tfplan
+        env:
+          ARM_CLIENT_ID: ${{ vars.TF_APPLY_CLIENT_ID_AZURE }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_USE_OIDC: "true"
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Slack 通知
+  # ────────────────────────────────────────────────────────────────────────
   notify-slack:
     name: Notify Slack
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [changes, fmt, analyze]
+    needs: [changes, fmt, analyze, plan, apply]
     if: always() && (github.event_name == 'workflow_dispatch' || needs.changes.outputs.iac == 'true') && (github.event_name != 'workflow_dispatch' || contains(fromJson(vars.ALLOWED_DISPATCH_USERS), github.actor))
 
     steps:
@@ -145,6 +470,12 @@ jobs:
             echo "COLOR=good" >> "$GITHUB_ENV"
           fi
 
+          case "${{ github.event_name }}" in
+            pull_request)  echo "ACTION=Plan"            >> "$GITHUB_ENV" ;;
+            push)          echo "ACTION=Apply"           >> "$GITHUB_ENV" ;;
+            *)             echo "ACTION=Static Analysis" >> "$GITHUB_ENV" ;;
+          esac
+
       - name: Notify Slack
         uses: slackapi/slack-github-action@v2
         with:
@@ -156,7 +487,7 @@ jobs:
                 {
                   "color": "${{ env.COLOR }}",
                   "mrkdwn_in": ["text"],
-                  "text": "${{ env.RESULT }} *CI - IaC (Terraform static analysis)*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}` | *Commit:* `${{ github.sha }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
+                  "text": "${{ env.RESULT }} *CI - IaC (Terraform ${{ env.ACTION }})*\n*Repo:* ${{ github.repository }}\n*Branch:* `${{ github.ref_name }}` | *Commit:* `${{ github.sha }}`\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>"
                 }
               ]
             }
