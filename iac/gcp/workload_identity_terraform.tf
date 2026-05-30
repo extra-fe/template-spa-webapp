@@ -21,6 +21,7 @@ data "google_storage_bucket" "tfstate" {
 resource "google_service_account" "terraform_plan" {
   account_id   = "${var.app-name}-${var.environment}-tf-plan"
   display_name = "GitHub Actions Terraform Plan SA"
+  description  = "Used by CI/CD for terraform plan (read-only)"
 }
 
 # plan SA は PR および workflow_dispatch (environment なし) から impersonate できる。
@@ -50,6 +51,7 @@ resource "google_storage_bucket_iam_member" "terraform_plan_state_reader" {
 resource "google_service_account" "terraform_apply" {
   account_id   = "${var.app-name}-${var.environment}-tf-apply"
   display_name = "GitHub Actions Terraform Apply SA"
+  description  = "Used by CI/CD for terraform apply (full access / iac-apply env only)"
 }
 
 # apply SA は GitHub Environment "iac-apply" が active なジョブのみ impersonate できる。

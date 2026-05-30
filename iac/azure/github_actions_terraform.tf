@@ -18,7 +18,7 @@
 
 resource "azuread_application_registration" "terraform_plan" {
   display_name     = "${var.app-name}-${var.environment}-terraform-plan"
-  description      = "GitHub Actions terraform plan 用 (Reader)"
+  description      = "GitHub Actions terraform plan (Reader / read-only)"
   sign_in_audience = "AzureADMyOrg"
 }
 

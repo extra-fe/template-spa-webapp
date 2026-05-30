@@ -27,6 +27,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 resource "aws_iam_role" "terraform_plan" {
   name        = "${var.app-name}-${var.environment}-terraform-plan"
   description = "GitHub Actions terraform plan (ReadOnly)"
+  tags        = { ManagedBy = "terraform" }
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -90,6 +91,7 @@ resource "aws_iam_role_policy" "terraform_plan_state" {
 resource "aws_iam_role" "terraform_apply" {
   name        = "${var.app-name}-${var.environment}-terraform-apply"
   description = "GitHub Actions terraform apply (AdministratorAccess / iac-apply environment only)"
+  tags        = { ManagedBy = "terraform" }
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
